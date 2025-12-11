@@ -299,3 +299,26 @@ model BacktestTrade {
   @@index([exitReason])
 }
 
+model Job {
+  id          String   @id @default(uuid())
+  type        String   // "PROCESS_SIGNAL" | "EXECUTE_DECISION" | ...
+  status      String   @default("PENDING") // "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELLED"
+  priority    Int      @default(0)
+
+  payload     Json
+  result      Json?
+  error       String?
+
+  attempts    Int      @default(0)
+  maxAttempts Int      @default(5)
+  nextRunAt   DateTime @default(now())
+  lockedAt    DateTime?
+  lockedBy    String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, nextRunAt])
+  @@index([type, status])
+}
+

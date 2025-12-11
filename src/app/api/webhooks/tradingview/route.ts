@@ -4,6 +4,7 @@ import { DecisionEngine } from '@/engine/decisionEngine'
 import { ExecutionEngine } from '@/execution/executor'
 import { TradingViewSignal } from '@/types/tradingview'
 import { getClientIp, rateLimit } from '@/lib/rateLimit'
+import { JobQueue } from '@/services/jobQueue'
 
 // Validation schemas
 const CoreSignalSchema = z.object({
@@ -215,49 +216,27 @@ export async function POST(request: NextRequest) {
 
     console.log(`💾 Signal saved to database: ${signalId}`)
 
-    // STEP 2: Process signal through decision engine
-    // Now processSignal receives the signalId and doesn't need to save it
-    const decisionEngine = new DecisionEngine()
-    const decision = await decisionEngine.processSignal(signal, undefined, storedSignal.id)
-
-    // Execute decision if not IGNORE
-    if (decision.action !== 'IGNORE') {
-      // Get the decision ID from the database (it was just created)
-      const storedDecision = await prisma.decision.findFirst({
-        where: {
-          signalId: storedSignal?.id,
-          action: decision.action,
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 1,
-      })
-
-      if (storedDecision) {
-        try {
-          const executionEngine = new ExecutionEngine()
-          await executionEngine.executeDecision(decision, storedDecision.id)
-        } catch (execError: any) {
-          console.error('Execution error (non-fatal):', execError)
-          // Don't fail the webhook if execution fails
-        }
-      }
-    }
+    // Phase 6: enqueue processing instead of doing heavy work inline.
+    // This prevents serverless timeouts and enables retries/backoff.
+    const queue = new JobQueue()
+    const job = await queue.enqueue({
+      type: 'PROCESS_SIGNAL',
+      payload: {
+        signalId: storedSignal.id,
+        // If you want worker to also execute orders, set execute=true.
+        execute: process.env.EXECUTION_ENABLED === 'true',
+      },
+      priority: 0,
+      maxAttempts: 5,
+    })
 
     const processingTime = Date.now() - startTime
-
-    console.log('✅ Webhook processed:', {
-      signalId,
-      type: signal.type,
-      decision: decision.action,
-      processingTime: `${processingTime}ms`,
-    })
 
     return NextResponse.json({
       success: true,
       signalId,
-      signal: signal.type,
-      decision: decision.action,
-      reasoning: decision.reasoning,
+      queued: true,
+      jobId: job.id,
       processingTime: `${processingTime}ms`,
     })
   } catch (error: any) {

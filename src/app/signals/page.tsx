@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Navbar from '@/components/Navbar'
 
 interface Signal {
   id: string
@@ -73,17 +73,15 @@ export default function SignalsPage() {
   }
 
   return (
-    <div className="container">
-      <nav className="nav">
-        <Link href="/">Home</Link>
-        <Link href="/signals">Signals</Link>
-        <Link href="/positions">Positions</Link>
-        <Link href="/orders">Orders</Link>
-        <Link href="/scanner">Scanner</Link>
-        <Link href="/config">Config</Link>
-      </nav>
+    <>
+      <Navbar />
+      <div className="container">
+        <div className="page-header">
+          <h1>TradingView Signals</h1>
+          <p className="subtitle">All webhook signals and their resulting decisions</p>
+        </div>
 
-      <div className="card">
+        <div className="card">
         <h1>TradingView Signals</h1>
         <table>
           <thead>
@@ -136,7 +134,8 @@ export default function SignalsPage() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Navbar from '@/components/Navbar'
 
 interface ScannerState {
   symbol: string
@@ -49,21 +49,15 @@ export default function ScannerPage() {
   }
 
   return (
-    <div className="container">
-      <nav className="nav">
-        <Link href="/">Home</Link>
-        <Link href="/signals">Signals</Link>
-        <Link href="/positions">Positions</Link>
-        <Link href="/orders">Orders</Link>
-        <Link href="/scanner">Scanner</Link>
-        <Link href="/config">Config</Link>
-      </nav>
+    <>
+      <Navbar />
+      <div className="container">
+        <div className="page-header">
+          <h1>Miyagi Scanner State</h1>
+          <p className="subtitle">Current macro regime bias for major indices</p>
+        </div>
 
-      <div className="card">
-        <h1>Miyagi Scanner State</h1>
-        <p style={{ marginBottom: '20px', color: '#666' }}>
-          Current macro regime bias for major indices
-        </p>
+        <div className="card">
         <table>
           <thead>
             <tr>
@@ -91,7 +85,8 @@ export default function ScannerPage() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

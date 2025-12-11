@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Navbar from '@/components/Navbar'
 
 interface Order {
   id: string
@@ -62,18 +62,15 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="container">
-      <nav className="nav">
-        <Link href="/">Home</Link>
-        <Link href="/signals">Signals</Link>
-        <Link href="/positions">Positions</Link>
-        <Link href="/orders">Orders</Link>
-        <Link href="/scanner">Scanner</Link>
-        <Link href="/config">Config</Link>
-      </nav>
+    <>
+      <Navbar />
+      <div className="container">
+        <div className="page-header">
+          <h1>Recent Orders</h1>
+          <p className="subtitle">Track all orders and their execution status</p>
+        </div>
 
-      <div className="card">
-        <h1>Recent Orders</h1>
+        <div className="card">
         <table>
           <thead>
             <tr>
@@ -107,7 +104,8 @@ export default function OrdersPage() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Navbar from '@/components/Navbar'
 
 interface Config {
   riskLimit: {
@@ -52,18 +52,15 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="container">
-      <nav className="nav">
-        <Link href="/">Home</Link>
-        <Link href="/signals">Signals</Link>
-        <Link href="/positions">Positions</Link>
-        <Link href="/orders">Orders</Link>
-        <Link href="/scanner">Scanner</Link>
-        <Link href="/config">Config</Link>
-      </nav>
+    <>
+      <Navbar />
+      <div className="container">
+        <div className="page-header">
+          <h1>Configuration & Risk Settings</h1>
+          <p className="subtitle">View and manage system configuration and risk limits</p>
+        </div>
 
-      <div className="card">
-        <h1>Configuration & Risk Settings</h1>
+        <div className="card">
 
         <div style={{ marginBottom: '30px' }}>
           <h2>Execution Settings</h2>
@@ -171,7 +168,8 @@ export default function ConfigPage() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

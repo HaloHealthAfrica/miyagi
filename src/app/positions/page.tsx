@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import Navbar from '@/components/Navbar'
 
 interface Position {
   id: string
@@ -58,18 +58,15 @@ export default function PositionsPage() {
   }
 
   return (
-    <div className="container">
-      <nav className="nav">
-        <Link href="/">Home</Link>
-        <Link href="/signals">Signals</Link>
-        <Link href="/positions">Positions</Link>
-        <Link href="/orders">Orders</Link>
-        <Link href="/scanner">Scanner</Link>
-        <Link href="/config">Config</Link>
-      </nav>
+    <>
+      <Navbar />
+      <div className="container">
+        <div className="page-header">
+          <h1>Open Positions</h1>
+          <p className="subtitle">Monitor your active trading positions and P&L</p>
+        </div>
 
-      <div className="card">
-        <h1>Open Positions</h1>
+        <div className="card">
         {positions.length === 0 ? (
           <p>No open positions</p>
         ) : (
@@ -121,7 +118,8 @@ export default function PositionsPage() {
           </table>
         )}
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

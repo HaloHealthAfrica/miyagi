@@ -15,6 +15,7 @@
     "db:init": "tsx scripts/init-db.ts",
     "db:migrate:prod": "node scripts/run-migrate.js",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:vercel": "tsx scripts/seed-vercel.ts",
     "setup:vercel": "node scripts/run-setup.js",
     "deploy": "node scripts/run-deploy.js",
     "deploy:vercel": "vercel --prod"

@@ -241,3 +241,60 @@ model SignalQuality {
   @@index([outcome])
 }
 
+model BacktestRun {
+  id              String   @id @default(uuid())
+  name            String
+  symbol          String
+  startDate       DateTime
+  endDate         DateTime
+  timeframe       String   @default("5min")
+  stopLossPercent Float    @default(5.0)
+  takeProfitPercent Float  @default(10.0)
+  maxHoldBars     Int      @default(78) // ~1 trading day of 5m bars
+  positionSize    Int      @default(1)  // contracts/shares proxy
+  contractMultiplier Int   @default(100)
+
+  totalTrades     Int      @default(0)
+  winningTrades   Int      @default(0)
+  losingTrades    Int      @default(0)
+  winRate         Float    @default(0)
+  totalPnL        Float    @default(0)
+  averagePnL      Float    @default(0)
+  maxDrawdown     Float    @default(0)
+  sharpeRatio     Float    @default(0)
+
+  results         Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  trades          BacktestTrade[]
+
+  @@index([symbol, startDate, endDate])
+}
+
+model BacktestTrade {
+  id            String   @id @default(uuid())
+  backtestRunId String
+  signalId      String?
+  decisionId    String?
+
+  direction     String   // "LONG" | "SHORT"
+  entryTime     DateTime
+  exitTime      DateTime
+  entryPrice    Float
+  exitPrice     Float
+  pnl           Float
+  pnlPercent    Float
+  exitReason    String   // "stop_loss" | "take_profit" | "timeout" | "data_missing"
+
+  createdAt     DateTime @default(now())
+
+  backtestRun   BacktestRun @relation(fields: [backtestRunId], references: [id], onDelete: Cascade)
+  signal        Signal?      @relation(fields: [signalId], references: [id], onDelete: SetNull)
+  decision      Decision?    @relation(fields: [decisionId], references: [id], onDelete: SetNull)
+
+  @@index([backtestRunId])
+  @@index([entryTime])
+  @@index([exitReason])
+}
+

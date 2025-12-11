@@ -80,7 +80,30 @@ export function useSignalQuality(signalId?: string, signalPattern?: string) {
   const params = new URLSearchParams()
   if (signalId) params.append('signalId', signalId)
   if (signalPattern) params.append('signal', signalPattern)
-  const url = `/api/learning/signal-quality?${params.toString()}`
+  params.append('action', 'signal-quality')
+  const url = `/api/learning?${params.toString()}`
   return useSWR(url, fetcher, { refreshInterval: 60000 })
+}
+
+export function useBacktestRuns() {
+  return useSWR('/api/backtest', fetcher, { refreshInterval: 30000 })
+}
+
+export function useBacktestRun(runId?: string) {
+  if (!runId) return { data: undefined, error: undefined, isLoading: false } as any
+  return useSWR(`/api/backtest?runId=${encodeURIComponent(runId)}`, fetcher, { refreshInterval: 30000 })
+}
+
+export async function runBacktest(payload: any) {
+  const res = await fetch('/api/backtest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }))
+    throw new Error(err.error || err.message || 'Failed to run backtest')
+  }
+  return res.json()
 }
 

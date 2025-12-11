@@ -10,9 +10,9 @@ import { formatCurrency, formatDate, getPnLColor } from '@/lib/utils'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 
 export default function DashboardPage() {
-  const { data: positionsData } = usePositions()
-  const { data: scannerData } = useScanner()
-  const { data: configData } = useConfig()
+  const { data: positionsData, error: positionsError } = usePositions()
+  const { data: scannerData, error: scannerError } = useScanner()
+  const { data: configData, error: configError } = useConfig()
 
   const positions = positionsData?.positions || []
   const scanner = scannerData?.scanner || []
@@ -43,9 +43,16 @@ export default function DashboardPage() {
   return (
     <MainLayout>
       <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Trading platform overview</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">Trading platform overview</p>
+          </div>
+          {(positionsError || scannerError || configError) && (
+            <div className="text-sm text-yellow-500">
+              Some data failed to load. Check <a href="/debug" className="underline">Debug page</a>
+            </div>
+          )}
         </div>
 
         {/* Summary Cards */}

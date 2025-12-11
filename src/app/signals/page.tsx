@@ -84,7 +84,15 @@ export default function SignalsPage() {
             {isLoading ? (
               <div className="text-center py-8 text-muted-foreground">Loading...</div>
             ) : error ? (
-              <div className="text-center py-8 text-destructive">Error loading signals</div>
+              <div className="text-center py-8 space-y-2">
+                <div className="text-destructive font-semibold">Error loading signals</div>
+                <div className="text-sm text-muted-foreground">
+                  {error.message || 'Unknown error'}
+                </div>
+                <div className="text-xs text-muted-foreground mt-4">
+                  Check browser console and server logs for details
+                </div>
+              </div>
             ) : (
               <Table>
                 <TableHeader>

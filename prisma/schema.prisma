@@ -246,11 +246,14 @@ model BacktestRun {
   id              String   @id @default(uuid())
   name            String
   symbol          String
+  experimentId    String?
   startDate       DateTime
   endDate         DateTime
   timeframe       String   @default("5min")
   stopLossPercent Float    @default(5.0)
   takeProfitPercent Float  @default(10.0)
+  slippageBps     Float    @default(0)  // per-side slippage in basis points
+  feePerTrade     Float    @default(0)  // flat fee per trade (applied once)
   maxHoldBars     Int      @default(78) // ~1 trading day of 5m bars
   positionSize    Int      @default(1)  // contracts/shares proxy
   contractMultiplier Int   @default(100)
@@ -269,8 +272,26 @@ model BacktestRun {
   updatedAt       DateTime @updatedAt
 
   trades          BacktestTrade[]
+  experiment      BacktestExperiment? @relation(fields: [experimentId], references: [id], onDelete: SetNull)
 
   @@index([symbol, startDate, endDate])
+  @@index([experimentId])
+}
+
+model BacktestExperiment {
+  id            String   @id @default(uuid())
+  name          String
+  kind          String   // "sweep" | "walkforward" | "montecarlo"
+  config        Json
+  status        String   @default("QUEUED") // "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED"
+  result        Json?
+  error         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  runs          BacktestRun[]
+
+  @@index([kind, status])
 }
 
 model BacktestTrade {

@@ -7,11 +7,14 @@ export type BacktestExitReason = 'stop_loss' | 'take_profit' | 'timeout' | 'data
 export interface BacktestParams {
   name?: string
   symbol: string
+  experimentId?: string
   startDate: Date
   endDate: Date
   timeframe?: '1min' | '5min' | '15min' | '1day'
   stopLossPercent?: number
   takeProfitPercent?: number
+  slippageBps?: number
+  feePerTrade?: number
   maxHoldBars?: number
   positionSize?: number
   contractMultiplier?: number
@@ -32,6 +35,8 @@ export class Backtester {
     const timeframe = params.timeframe || '5min'
     const stopLossPercent = params.stopLossPercent ?? 5.0
     const takeProfitPercent = params.takeProfitPercent ?? 10.0
+    const slippageBps = params.slippageBps ?? 0
+    const feePerTrade = params.feePerTrade ?? 0
     const maxHoldBars = params.maxHoldBars ?? (timeframe === '5min' ? 78 : 200)
     const positionSize = params.positionSize ?? 1
     const contractMultiplier = params.contractMultiplier ?? 100
@@ -52,11 +57,14 @@ export class Backtester {
       data: {
         name: params.name || `Backtest ${params.symbol} ${timeframe}`,
         symbol: params.symbol,
+        experimentId: params.experimentId || null,
         startDate: params.startDate,
         endDate: params.endDate,
         timeframe,
         stopLossPercent,
         takeProfitPercent,
+        slippageBps,
+        feePerTrade,
         maxHoldBars,
         positionSize,
         contractMultiplier,
@@ -103,7 +111,8 @@ export class Backtester {
       if (entryIdx < 0) continue
 
       const entryBar = bars[entryIdx]
-      const entryPrice = entryBar.close
+      const rawEntry = entryBar.close
+      const entryPrice = this.applySlippage(rawEntry, direction as any, 'entry', slippageBps)
 
       const sl =
         direction === 'LONG'
@@ -123,12 +132,13 @@ export class Backtester {
         maxHoldBars
       )
 
+      const exitPx = this.applySlippage(exitPrice, direction as any, 'exit', slippageBps)
       const pnlPercent =
         direction === 'LONG'
-          ? ((exitPrice - entryPrice) / entryPrice) * 100
-          : ((entryPrice - exitPrice) / entryPrice) * 100
+          ? ((exitPx - entryPrice) / entryPrice) * 100
+          : ((entryPrice - exitPx) / entryPrice) * 100
       const notional = entryPrice * positionSize * contractMultiplier
-      const pnl = (pnlPercent / 100) * notional
+      const pnl = (pnlPercent / 100) * notional - feePerTrade
 
       trades.push({
         backtestRunId: run.id,
@@ -138,7 +148,7 @@ export class Backtester {
         entryTime: entryBar.timestamp,
         exitTime: exitBar.timestamp,
         entryPrice,
-        exitPrice,
+        exitPrice: exitPx,
         pnl,
         pnlPercent,
         exitReason,
@@ -181,6 +191,23 @@ export class Backtester {
     })
 
     return { runId: run.id }
+  }
+
+  private applySlippage(
+    price: number,
+    direction: 'LONG' | 'SHORT',
+    side: 'entry' | 'exit',
+    slippageBps: number
+  ): number {
+    if (!slippageBps) return price
+    const bps = slippageBps / 10_000
+    // Conservative: worsen fills.
+    // LONG entry: pay more; LONG exit: receive less.
+    // SHORT entry (sell): receive less; SHORT exit (buy): pay more.
+    if (direction === 'LONG') {
+      return side === 'entry' ? price * (1 + bps) : price * (1 - bps)
+    }
+    return side === 'entry' ? price * (1 - bps) : price * (1 + bps)
   }
 
   private findFirstBarOnOrAfter(bars: OHLC[], ts: Date): number {

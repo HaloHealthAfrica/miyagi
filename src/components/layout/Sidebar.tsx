@@ -11,6 +11,7 @@ import {
   Search, 
   Shield,
   BarChart3,
+  FlaskConical,
   ListTodo,
   Wrench,
   TrendingUp
@@ -27,6 +28,7 @@ const navItems = [
   { href: '/analytics', label: 'Analytics', icon: LayoutDashboard },
   { href: '/learning', label: 'Learning', icon: LayoutDashboard },
   { href: '/backtest', label: 'Backtest', icon: BarChart3 },
+  { href: '/research', label: 'Research', icon: FlaskConical },
   { href: '/jobs', label: 'Jobs', icon: ListTodo },
   { href: '/ops', label: 'Ops', icon: Wrench },
   { href: '/risk', label: 'Risk', icon: Shield },

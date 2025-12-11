@@ -107,3 +107,25 @@ export async function runBacktest(payload: any) {
   return res.json()
 }
 
+export function useResearchExperiments() {
+  return useSWR('/api/research', fetcher, { refreshInterval: 10000 })
+}
+
+export function useResearchExperiment(experimentId?: string) {
+  if (!experimentId) return { data: undefined, error: undefined, isLoading: false } as any
+  return useSWR(`/api/research?experimentId=${encodeURIComponent(experimentId)}`, fetcher, { refreshInterval: 5000 })
+}
+
+export async function runResearchExperiment(config: any) {
+  const res = await fetch('/api/research', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: res.statusText }))
+    throw new Error(err.error || err.message || 'Failed to start experiment')
+  }
+  return res.json()
+}
+

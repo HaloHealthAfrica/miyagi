@@ -1,8 +1,9 @@
 import { prisma } from '@/lib/prisma'
 import { DecisionEngine } from '@/engine/decisionEngine'
 import { ExecutionEngine } from '@/execution/executor'
+import { ResearchService } from '@/services/research'
 
-export type JobType = 'PROCESS_SIGNAL'
+export type JobType = 'PROCESS_SIGNAL' | 'RUN_EXPERIMENT'
 export type JobStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
 
 export interface EnqueueJobInput {
@@ -100,6 +101,7 @@ export class JobQueue {
 
 export class JobProcessor {
   private queue = new JobQueue()
+  private research = new ResearchService()
 
   async processBatch(limit: number, workerId: string) {
     const claimed = await this.queue.claim(limit, workerId)
@@ -161,6 +163,13 @@ export class JobProcessor {
       }
 
       return { decision, execution }
+    }
+
+    if (job.type === 'RUN_EXPERIMENT') {
+      const { experimentId } = job.payload || {}
+      if (!experimentId) throw new Error('Missing payload.experimentId')
+      const result = await this.research.runExperiment(experimentId)
+      return { experimentId, result }
     }
 
     throw new Error(`Unknown job type: ${job.type}`)

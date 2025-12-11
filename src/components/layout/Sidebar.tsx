@@ -21,6 +21,7 @@ const navItems = [
   { href: '/positions', label: 'Positions', icon: Briefcase },
   { href: '/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/scanner', label: 'Scanner', icon: Search },
+  { href: '/analytics', label: 'Analytics', icon: LayoutDashboard },
   { href: '/risk', label: 'Risk', icon: Shield },
   { href: '/debug', label: 'Debug', icon: Shield },
 ]

@@ -198,5 +198,28 @@ model TradeOutcome {
   @@index([decisionId])
   @@index([signalId])
   @@index([exitReason])
+  @@index([createdAt])
+}
+
+model PerformanceMetrics {
+  id            String   @id @default(uuid())
+  period        String   // "daily" | "weekly" | "monthly" | "all"
+  startDate     DateTime
+  endDate       DateTime
+  totalTrades   Int      @default(0)
+  winningTrades Int      @default(0)
+  losingTrades  Int      @default(0)
+  winRate       Float    @default(0)
+  totalPnL      Float    @default(0)
+  averagePnL    Float    @default(0)
+  sharpeRatio   Float    @default(0)
+  maxDrawdown   Float    @default(0)
+  profitFactor  Float    @default(0)
+  metrics       Json     // Full metrics snapshot
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([period, startDate, endDate])
+  @@index([startDate, endDate])
 }
 

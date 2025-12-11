@@ -55,3 +55,12 @@ export async function updateRiskSettings(data: any) {
   return response.json()
 }
 
+export function useAnalytics(startDate?: string, endDate?: string, type: 'metrics' | 'signal-quality' | 'full' = 'metrics') {
+  const params = new URLSearchParams()
+  if (startDate) params.append('startDate', startDate)
+  if (endDate) params.append('endDate', endDate)
+  params.append('type', type)
+  const url = `/api/analytics?${params.toString()}`
+  return useSWR(url, fetcher, { refreshInterval: 30000 }) // Refresh every 30 seconds
+}
+

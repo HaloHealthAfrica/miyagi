@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,14 +24,16 @@ export default function RiskPage() {
   const riskState = data?.riskState
   const executionEnabled = data?.executionEnabled || false
 
-  if (riskLimit && !isEditing) {
-    setFormData({
-      maxPositions: riskLimit.maxPositions || 5,
-      maxDailyLoss: riskLimit.maxDailyLoss || 1000,
-      maxRiskPerTrade: riskLimit.maxRiskPerTrade || 500,
-      maxRunnersPerCore: riskLimit.maxRunnersPerCore || 2,
-    })
-  }
+  useEffect(() => {
+    if (riskLimit && !isEditing) {
+      setFormData({
+        maxPositions: riskLimit.maxPositions || 5,
+        maxDailyLoss: riskLimit.maxDailyLoss || 1000,
+        maxRiskPerTrade: riskLimit.maxRiskPerTrade || 500,
+        maxRunnersPerCore: riskLimit.maxRunnersPerCore || 2,
+      })
+    }
+  }, [riskLimit, isEditing])
 
   const handleSave = async () => {
     try {

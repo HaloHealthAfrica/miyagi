@@ -15,7 +15,11 @@ export async function GET(request: NextRequest) {
 
   // Best-effort rate limit (mostly to avoid accidental loops)
   const ip = getClientIp(request)
-  const rl = rateLimit(`cron:update-prices:${ip}`, Number(process.env.CRON_RL_LIMIT || 120), Number(process.env.CRON_RL_WINDOW_MS || 60_000))
+  const rl = await rateLimit(
+    `cron:update-prices:${ip}`,
+    Number(process.env.CRON_RL_LIMIT || 120),
+    Number(process.env.CRON_RL_WINDOW_MS || 60_000)
+  )
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
   }

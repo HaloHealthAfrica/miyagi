@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import useSWR from 'swr'
 import { formatDate } from '@/lib/utils'
+import { useState } from 'react'
 
 const fetcher = async (url: string) => {
   const res = await fetch(url)
@@ -14,7 +15,9 @@ const fetcher = async (url: string) => {
 }
 
 export default function JobsPage() {
-  const { data, error, isLoading, mutate } = useSWR('/api/jobs?limit=100', fetcher, { refreshInterval: 5000 })
+  const [status, setStatus] = useState<string>('ALL')
+  const url = status === 'ALL' ? '/api/jobs?limit=100' : `/api/jobs?limit=100&status=${encodeURIComponent(status)}`
+  const { data, error, isLoading, mutate } = useSWR(url, fetcher, { refreshInterval: 5000 })
 
   const retry = async (jobId: string) => {
     await fetch('/api/jobs', {
@@ -47,6 +50,20 @@ export default function JobsPage() {
 
         {data && (
           <>
+            <div className="flex flex-wrap gap-2">
+              {['ALL', 'PENDING', 'RUNNING', 'SUCCEEDED', 'FAILED', 'CANCELLED'].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatus(s)}
+                  className={`px-3 py-1 rounded text-sm ${
+                    status === s ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
             <Card>
               <CardHeader>
                 <CardTitle>Status counts</CardTitle>

@@ -304,6 +304,7 @@ model Job {
   type        String   // "PROCESS_SIGNAL" | "EXECUTE_DECISION" | ...
   status      String   @default("PENDING") // "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELLED"
   priority    Int      @default(0)
+  dedupeKey   String?  @unique // idempotency key for queueing (prevents duplicate jobs)
 
   payload     Json
   result      Json?
@@ -320,5 +321,17 @@ model Job {
 
   @@index([status, nextRunAt])
   @@index([type, status])
+}
+
+model DecisionApproval {
+  id          String   @id @default(uuid())
+  decisionId  String
+  approverId  String
+  createdAt   DateTime @default(now())
+
+  decision    Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+
+  @@unique([decisionId, approverId])
+  @@index([decisionId])
 }
 

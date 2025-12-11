@@ -9,22 +9,33 @@ export interface EnqueueJobInput {
   type: JobType
   payload: any
   priority?: number
+  dedupeKey?: string
   maxAttempts?: number
   nextRunAt?: Date
 }
 
 export class JobQueue {
   async enqueue(input: EnqueueJobInput) {
-    return prisma.job.create({
-      data: {
-        type: input.type,
-        payload: input.payload as any,
-        priority: input.priority ?? 0,
-        maxAttempts: input.maxAttempts ?? 5,
-        nextRunAt: input.nextRunAt ?? new Date(),
-        status: 'PENDING',
-      },
-    })
+    try {
+      return await prisma.job.create({
+        data: {
+          type: input.type,
+          payload: input.payload as any,
+          priority: input.priority ?? 0,
+          dedupeKey: input.dedupeKey,
+          maxAttempts: input.maxAttempts ?? 5,
+          nextRunAt: input.nextRunAt ?? new Date(),
+          status: 'PENDING',
+        },
+      })
+    } catch (e: any) {
+      // P2002 = unique constraint violation (dedupeKey)
+      if (e?.code === 'P2002' && input.dedupeKey) {
+        const existing = await prisma.job.findFirst({ where: { dedupeKey: input.dedupeKey } })
+        if (existing) return existing
+      }
+      throw e
+    }
   }
 
   /**
@@ -128,6 +139,21 @@ export class JobProcessor {
           take: 1,
         })
         if (storedDecision) {
+          // Phase 7: two-man rule approval gate (optional)
+          const approvalRequired = process.env.EXECUTION_APPROVAL_REQUIRED === 'true'
+          const threshold = Number(process.env.EXECUTION_APPROVAL_THRESHOLD || 2)
+          if (approvalRequired) {
+            const approvals = await prisma.decisionApproval.count({ where: { decisionId: storedDecision.id } })
+            if (approvals < threshold) {
+              execution = {
+                executed: false,
+                decisionId: storedDecision.id,
+                reason: `Not approved (need ${threshold}, have ${approvals})`,
+              }
+              return { decision, execution }
+            }
+          }
+
           const executor = new ExecutionEngine()
           await executor.executeDecision(decision as any, storedDecision.id)
           execution = { executed: true, decisionId: storedDecision.id }

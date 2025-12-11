@@ -11,7 +11,11 @@ export async function GET(request: NextRequest) {
   }
 
   const ip = getClientIp(request)
-  const rl = rateLimit(`cron:enqueue-unprocessed:${ip}`, Number(process.env.CRON_RL_LIMIT || 30), Number(process.env.CRON_RL_WINDOW_MS || 60_000))
+  const rl = await rateLimit(
+    `cron:enqueue-unprocessed:${ip}`,
+    Number(process.env.CRON_RL_LIMIT || 30),
+    Number(process.env.CRON_RL_WINDOW_MS || 60_000)
+  )
   if (!rl.allowed) return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
 
   try {
@@ -29,6 +33,7 @@ export async function GET(request: NextRequest) {
       await queue.enqueue({
         type: 'PROCESS_SIGNAL',
         payload: { signalId: s.id, execute: process.env.EXECUTION_ENABLED === 'true' },
+        dedupeKey: `process-signal:${s.id}`,
         priority: 0,
       })
       enqueued++

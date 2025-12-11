@@ -62,7 +62,11 @@ export async function POST(request: NextRequest) {
 
     // Rate limit (best-effort)
     const ip = getClientIp(request)
-    const rl = rateLimit(`tv-webhook:${ip}`, Number(process.env.WEBHOOK_RL_LIMIT || 60), Number(process.env.WEBHOOK_RL_WINDOW_MS || 60_000))
+    const rl = await rateLimit(
+      `tv-webhook:${ip}`,
+      Number(process.env.WEBHOOK_RL_LIMIT || 60),
+      Number(process.env.WEBHOOK_RL_WINDOW_MS || 60_000)
+    )
     if (!rl.allowed) {
       return NextResponse.json(
         { success: false, error: 'Rate limit exceeded', resetAt: new Date(rl.resetAt).toISOString() },
@@ -227,6 +231,7 @@ export async function POST(request: NextRequest) {
         execute: process.env.EXECUTION_ENABLED === 'true',
       },
       priority: 0,
+      dedupeKey: `process-signal:${storedSignal.id}`,
       maxAttempts: 5,
     })
 

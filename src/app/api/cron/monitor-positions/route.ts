@@ -14,7 +14,11 @@ export async function GET(request: NextRequest) {
   }
 
   const ip = getClientIp(request)
-  const rl = rateLimit(`cron:monitor-positions:${ip}`, Number(process.env.CRON_RL_LIMIT || 120), Number(process.env.CRON_RL_WINDOW_MS || 60_000))
+  const rl = await rateLimit(
+    `cron:monitor-positions:${ip}`,
+    Number(process.env.CRON_RL_LIMIT || 120),
+    Number(process.env.CRON_RL_WINDOW_MS || 60_000)
+  )
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
   }

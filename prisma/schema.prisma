@@ -8,6 +8,9 @@ generator client {
 // Seed script configuration
 // Run with: npm run db:seed
 
+// Seed script configuration
+// Run with: npm run db:seed
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")

@@ -9,17 +9,12 @@ import { MarketDataClient } from '@/providers/marketdataClient'
 import { OptionContract } from '@/providers/base'
 
 export class DecisionEngine {
-  private tradier: TradierClient
-  private alpaca: AlpacaClient
-  private twelvedata: TwelveDataClient
-  private marketdata: MarketDataClient
-  private basePositionSize: number
-  private executionEnabled: boolean
-
   private tradier: TradierClient | null = null
   private alpaca: AlpacaClient | null = null
   private twelvedata: TwelveDataClient | null = null
   private marketdata: MarketDataClient | null = null
+  private basePositionSize: number
+  private executionEnabled: boolean
 
   constructor() {
     try {

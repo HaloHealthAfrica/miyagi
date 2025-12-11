@@ -4,12 +4,9 @@ import { TradierClient } from '@/providers/tradierClient'
 import { AlpacaClient } from '@/providers/alpacaClient'
 
 export class ExecutionEngine {
-  private tradier: TradierClient
-  private alpaca: AlpacaClient
-  private executionEnabled: boolean
-
   private tradier: TradierClient | null = null
   private alpaca: AlpacaClient | null = null
+  private executionEnabled: boolean
 
   constructor() {
     try {

@@ -74,6 +74,7 @@ model Decision {
   strategy    Strategy? @relation(fields: [strategyId], references: [id])
   orders      Order[]
   positions   Position[]
+  outcomes    TradeOutcome[]
 }
 
 model Order {

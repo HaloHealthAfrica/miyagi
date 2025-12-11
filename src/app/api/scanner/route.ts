@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
+    // Check database connection first
+    await prisma.$connect().catch(() => {
+      // Connection might already be established
+    })
+
     // Get latest scanner state for each symbol
     const symbols = ['SPY', 'QQQ', 'ES1!', 'NQ1!', 'BTC']
 
@@ -24,7 +29,19 @@ export async function GET() {
     return NextResponse.json({ scanner: scannerState })
   } catch (error: any) {
     console.error('Error fetching scanner state:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+    })
+    return NextResponse.json(
+      {
+        error: error.message || 'Failed to fetch scanner state',
+        code: error.code,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
+      { status: 500 }
+    )
   }
 }
 

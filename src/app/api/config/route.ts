@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
+    // Check database connection first
+    await prisma.$connect().catch(() => {
+      // Connection might already be established
+    })
+
     const riskLimit = await prisma.riskLimit.findFirst({
       where: { enabled: true },
     })
@@ -20,7 +25,19 @@ export async function GET() {
     })
   } catch (error: any) {
     console.error('Error fetching config:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+    })
+    return NextResponse.json(
+      {
+        error: error.message || 'Failed to fetch config',
+        code: error.code,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
+      { status: 500 }
+    )
   }
 }
 

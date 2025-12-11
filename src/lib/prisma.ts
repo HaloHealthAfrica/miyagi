@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 
+// PrismaClient is attached to the `global` object in development to prevent
+// exhausting your database connection limit.
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
@@ -8,22 +10,24 @@ const globalForPrisma = globalThis as unknown as {
 const databaseUrl = process.env.PRISMA_DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URL
 
 if (!databaseUrl) {
-  console.warn('No DATABASE_URL found. Database operations will fail.')
+  console.error('❌ No DATABASE_URL found. Please set PRISMA_DATABASE_URL, POSTGRES_URL, or DATABASE_URL')
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  datasources: {
-    db: {
-      url: databaseUrl,
-    },
-  },
-})
+// Create Prisma client with proper configuration for Vercel/serverless
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    // Don't override datasources - let Prisma use DATABASE_URL from env
+    // This is important for Vercel/serverless environments
+  })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}
 
-// Handle graceful shutdown
-if (typeof window === 'undefined') {
+// Handle graceful shutdown (only in Node.js environment)
+if (typeof window === 'undefined' && process.env.NODE_ENV !== 'production') {
   process.on('beforeExit', async () => {
     await prisma.$disconnect()
   })

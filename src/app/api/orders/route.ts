@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
+    // Check database connection first
+    await prisma.$connect().catch(() => {
+      // Connection might already be established
+    })
+
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '50')
     const status = searchParams.get('status')
@@ -29,7 +34,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ orders })
   } catch (error: any) {
     console.error('Error fetching orders:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+    })
+    return NextResponse.json(
+      {
+        error: error.message || 'Failed to fetch orders',
+        code: error.code,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
+      { status: 500 }
+    )
   }
 }
 

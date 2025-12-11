@@ -68,12 +68,12 @@ export function useLearningAnalysis(startDate?: string, endDate?: string) {
   const params = new URLSearchParams()
   if (startDate) params.append('startDate', startDate)
   if (endDate) params.append('endDate', endDate)
-  const url = `/api/learning/analyze?${params.toString()}`
+  const url = `/api/learning?${params.toString()}`
   return useSWR(url, fetcher, { refreshInterval: 60000 }) // Refresh every minute
 }
 
 export function useOptimizations() {
-  return useSWR('/api/learning/optimize', fetcher, { refreshInterval: 300000 }) // Refresh every 5 minutes
+  return useSWR('/api/learning?action=optimize', fetcher, { refreshInterval: 300000 }) // Refresh every 5 minutes
 }
 
 export function useSignalQuality(signalId?: string, signalPattern?: string) {

@@ -1,111 +1,123 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Navbar from '@/components/Navbar'
-
-interface Order {
-  id: string
-  broker: string
-  symbol: string
-  side: string
-  quantity: number
-  strike: number | null
-  orderType: string
-  status: string
-  createdAt: Date
-  updatedAt: Date
-  decision: {
-    action: string
-    reasoning: string | null
-  } | null
-}
+import { useState } from 'react'
+import { MainLayout } from '@/components/layout/MainLayout'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { useOrders } from '@/lib/api'
+import { formatDate, formatCurrency } from '@/lib/utils'
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState<string | undefined>()
+  const { data, error, isLoading } = useOrders(100, statusFilter)
 
-  useEffect(() => {
-    fetchOrders()
-    const interval = setInterval(fetchOrders, 5000) // Refresh every 5 seconds
-    return () => clearInterval(interval)
-  }, [])
-
-  const fetchOrders = async () => {
-    try {
-      const res = await fetch('/api/orders?limit=100')
-      const data = await res.json()
-      setOrders(data.orders || [])
-    } catch (error) {
-      console.error('Error fetching orders:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const orders = data?.orders || []
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'FILLED':
-        return 'badge success'
+        return <Badge variant="success">{status}</Badge>
       case 'SUBMITTED':
       case 'PENDING':
-        return 'badge warning'
+        return <Badge variant="warning">{status}</Badge>
       case 'REJECTED':
       case 'CANCELLED':
-        return 'badge danger'
+        return <Badge variant="danger">{status}</Badge>
       default:
-        return 'badge neutral'
+        return <Badge variant="neutral">{status}</Badge>
     }
   }
 
-  if (loading) {
-    return <div className="container">Loading...</div>
-  }
-
   return (
-    <>
-      <Navbar />
-      <div className="container">
-        <div className="page-header">
-          <h1>Recent Orders</h1>
-          <p className="subtitle">Track all orders and their execution status</p>
+    <MainLayout>
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Orders</h1>
+            <p className="text-muted-foreground">Broker order history and status</p>
+          </div>
+          <div className="flex gap-2">
+            <Badge
+              variant={statusFilter === undefined ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setStatusFilter(undefined)}
+            >
+              All
+            </Badge>
+            <Badge
+              variant={statusFilter === 'PENDING' ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setStatusFilter('PENDING')}
+            >
+              Pending
+            </Badge>
+            <Badge
+              variant={statusFilter === 'FILLED' ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setStatusFilter('FILLED')}
+            >
+              Filled
+            </Badge>
+          </div>
         </div>
 
-        <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Broker</th>
-              <th>Symbol</th>
-              <th>Side</th>
-              <th>Quantity</th>
-              <th>Strike</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => (
-              <tr key={order.id}>
-                <td>{new Date(order.createdAt).toLocaleString()}</td>
-                <td>{order.broker}</td>
-                <td>{order.symbol}</td>
-                <td>{order.side}</td>
-                <td>{order.quantity}</td>
-                <td>{order.strike?.toFixed(2) || '-'}</td>
-                <td>{order.orderType}</td>
-                <td>
-                  <span className={getStatusBadge(order.status)}>{order.status}</span>
-                </td>
-                <td>{order.decision?.action || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Card>
+          <CardHeader>
+            <CardTitle>Order History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            ) : error ? (
+              <div className="text-center py-8 text-destructive">Error loading orders</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Broker</TableHead>
+                    <TableHead>Symbol</TableHead>
+                    <TableHead>Side</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>Strike</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.length > 0 ? (
+                    orders.map((order: any) => (
+                      <TableRow key={order.id}>
+                        <TableCell className="text-xs">{formatDate(order.createdAt)}</TableCell>
+                        <TableCell className="uppercase">{order.broker}</TableCell>
+                        <TableCell className="font-medium">{order.symbol}</TableCell>
+                        <TableCell>
+                          <Badge variant={order.side === 'BUY' ? 'success' : 'danger'}>
+                            {order.side}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{order.quantity}</TableCell>
+                        <TableCell>{order.strike?.toFixed(2) || '-'}</TableCell>
+                        <TableCell>{order.orderType}</TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>{order.decision?.action || '-'}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center text-muted-foreground">
+                        No orders found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
-      </div>
-    </>
+    </MainLayout>
   )
 }
-

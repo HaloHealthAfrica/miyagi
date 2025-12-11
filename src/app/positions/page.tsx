@@ -1,125 +1,127 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Navbar from '@/components/Navbar'
-
-interface Position {
-  id: string
-  symbol: string
-  direction: string
-  quantity: number
-  strike: number | null
-  entryPrice: number
-  currentPrice: number | null
-  pnl: number
-  pnlPercent: number
-  broker: string
-  openedAt: Date
-  decision: {
-    action: string
-    meta: any
-  } | null
-}
+import { useState } from 'react'
+import { MainLayout } from '@/components/layout/MainLayout'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { usePositions } from '@/lib/api'
+import { formatDate, formatCurrency, getPnLColor } from '@/lib/utils'
+import { TrendingUp, TrendingDown } from 'lucide-react'
 
 export default function PositionsPage() {
-  const [positions, setPositions] = useState<Position[]>([])
-  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('OPEN')
+  const { data, error, isLoading } = usePositions()
 
-  useEffect(() => {
-    fetchPositions()
-    const interval = setInterval(fetchPositions, 5000) // Refresh every 5 seconds
-    return () => clearInterval(interval)
-  }, [])
-
-  const fetchPositions = async () => {
-    try {
-      const res = await fetch('/api/positions')
-      const data = await res.json()
-      setPositions(data.positions || [])
-    } catch (error) {
-      console.error('Error fetching positions:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getDirectionBadge = (direction: string) => {
-    return direction === 'LONG' ? 'badge success' : 'badge danger'
-  }
-
-  const getPnLBadge = (pnl: number) => {
-    if (pnl > 0) return 'badge success'
-    if (pnl < 0) return 'badge danger'
-    return 'badge neutral'
-  }
-
-  if (loading) {
-    return <div className="container">Loading...</div>
-  }
+  const positions = data?.positions || []
+  const filteredPositions = statusFilter === 'ALL' 
+    ? positions 
+    : positions.filter((p: any) => p.status === statusFilter)
 
   return (
-    <>
-      <Navbar />
-      <div className="container">
-        <div className="page-header">
-          <h1>Open Positions</h1>
-          <p className="subtitle">Monitor your active trading positions and P&L</p>
+    <MainLayout>
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Positions</h1>
+            <p className="text-muted-foreground">Active and closed trading positions</p>
+          </div>
+          <div className="flex gap-2">
+            <Badge
+              variant={statusFilter === 'ALL' ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setStatusFilter('ALL')}
+            >
+              All
+            </Badge>
+            <Badge
+              variant={statusFilter === 'OPEN' ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setStatusFilter('OPEN')}
+            >
+              Open
+            </Badge>
+            <Badge
+              variant={statusFilter === 'CLOSED' ? 'default' : 'outline'}
+              className="cursor-pointer"
+              onClick={() => setStatusFilter('CLOSED')}
+            >
+              Closed
+            </Badge>
+          </div>
         </div>
 
-        <div className="card">
-        {positions.length === 0 ? (
-          <p>No open positions</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Direction</th>
-                <th>Quantity</th>
-                <th>Strike</th>
-                <th>Entry Price</th>
-                <th>Current Price</th>
-                <th>PnL</th>
-                <th>PnL %</th>
-                <th>Broker</th>
-                <th>Opened</th>
-              </tr>
-            </thead>
-            <tbody>
-              {positions.map((pos) => (
-                <tr key={pos.id}>
-                  <td>{pos.symbol}</td>
-                  <td>
-                    <span className={getDirectionBadge(pos.direction)}>
-                      {pos.direction}
-                    </span>
-                  </td>
-                  <td>{pos.quantity}</td>
-                  <td>{pos.strike?.toFixed(2) || '-'}</td>
-                  <td>${pos.entryPrice.toFixed(2)}</td>
-                  <td>
-                    {pos.currentPrice ? `$${pos.currentPrice.toFixed(2)}` : '-'}
-                  </td>
-                  <td>
-                    <span className={getPnLBadge(pos.pnl)}>
-                      ${pos.pnl.toFixed(2)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={getPnLBadge(pos.pnl)}>
-                      {pos.pnlPercent.toFixed(2)}%
-                    </span>
-                  </td>
-                  <td>{pos.broker}</td>
-                  <td>{new Date(pos.openedAt).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Position List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            ) : error ? (
+              <div className="text-center py-8 text-destructive">Error loading positions</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Symbol</TableHead>
+                    <TableHead>Direction</TableHead>
+                    <TableHead>Size</TableHead>
+                    <TableHead>Strike</TableHead>
+                    <TableHead>Entry Price</TableHead>
+                    <TableHead>Mark Price</TableHead>
+                    <TableHead>P&L</TableHead>
+                    <TableHead>P&L %</TableHead>
+                    <TableHead>Broker</TableHead>
+                    <TableHead>Opened</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPositions.length > 0 ? (
+                    filteredPositions.map((position: any) => (
+                      <TableRow key={position.id}>
+                        <TableCell className="font-medium">{position.symbol}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {position.direction === 'LONG' ? (
+                              <TrendingUp className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <TrendingDown className="h-4 w-4 text-red-500" />
+                            )}
+                            <Badge variant={position.direction === 'LONG' ? 'success' : 'danger'}>
+                              {position.direction}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>{position.quantity}</TableCell>
+                        <TableCell>{position.strike?.toFixed(2) || '-'}</TableCell>
+                        <TableCell>{formatCurrency(position.entryPrice)}</TableCell>
+                        <TableCell>
+                          {position.currentPrice ? formatCurrency(position.currentPrice) : '-'}
+                        </TableCell>
+                        <TableCell className={getPnLColor(position.pnl)}>
+                          {formatCurrency(position.pnl)}
+                        </TableCell>
+                        <TableCell className={getPnLColor(position.pnl)}>
+                          {position.pnlPercent?.toFixed(2) || '0.00'}%
+                        </TableCell>
+                        <TableCell className="uppercase">{position.broker}</TableCell>
+                        <TableCell className="text-xs">{formatDate(position.openedAt)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center text-muted-foreground">
+                        No positions found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
-      </div>
-    </>
+    </MainLayout>
   )
 }
-

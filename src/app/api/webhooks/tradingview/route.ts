@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { DecisionEngine } from '@/engine/decisionEngine'
 import { ExecutionEngine } from '@/execution/executor'
 import { TradingViewSignal } from '@/types/tradingview'
+import { getClientIp, rateLimit } from '@/lib/rateLimit'
 
 // Validation schemas
 const CoreSignalSchema = z.object({
@@ -47,6 +48,27 @@ export async function POST(request: NextRequest) {
   let signalId: string | null = null
   
   try {
+    // Optional auth (recommended in production)
+    const expectedSecret = process.env.TV_WEBHOOK_SECRET
+    if (expectedSecret) {
+      const headerSecret = request.headers.get('x-tv-secret') || request.headers.get('x-webhook-secret')
+      // TradingView can’t always send custom headers; allow secret inside JSON payload as `secret` too.
+      // (We’ll check body.secret after parsing.)
+      if (headerSecret && headerSecret !== expectedSecret) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      }
+    }
+
+    // Rate limit (best-effort)
+    const ip = getClientIp(request)
+    const rl = rateLimit(`tv-webhook:${ip}`, Number(process.env.WEBHOOK_RL_LIMIT || 60), Number(process.env.WEBHOOK_RL_WINDOW_MS || 60_000))
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Rate limit exceeded', resetAt: new Date(rl.resetAt).toISOString() },
+        { status: 429 }
+      )
+    }
+
     // Parse request body
     let body: any
     try {
@@ -122,31 +144,72 @@ export async function POST(request: NextRequest) {
 
     const signal = validationResult.data as TradingViewSignal
 
+    // Secret validation via body (if header wasn’t provided)
+    const expectedSecret = process.env.TV_WEBHOOK_SECRET
+    if (expectedSecret) {
+      const headerSecret = request.headers.get('x-tv-secret') || request.headers.get('x-webhook-secret')
+      const bodySecret = body?.secret
+      if (!headerSecret && bodySecret !== expectedSecret) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      }
+    }
+
     // Ensure database connection
     const { prisma } = await import('@/lib/prisma')
     await prisma.$connect().catch(() => {
       // Connection might already be established
     })
 
+    // Build idempotency key (prevents duplicates on retries)
+    const dedupeKey = JSON.stringify({
+      type: signal.type,
+      ts: signal.timestamp,
+      ...(signal.type === 'scanner'
+        ? { symbol: (signal as any).symbol, new_bias: (signal as any).new_bias }
+        : {
+            direction: (signal as any).direction,
+            signal: (signal as any).signal,
+            tf: (signal as any).tf,
+            strike_hint: (signal as any).strike_hint,
+            risk_mult: (signal as any).risk_mult,
+          }),
+    })
+
     // STEP 1: Save signal to database FIRST (before processing)
     // This ensures we have a record even if processing fails
-    const storedSignal = await prisma.signal.create({
-      data: {
-        type: signal.type,
-        direction: 'direction' in signal ? signal.direction : null,
-        signal: 'signal' in signal ? signal.signal : 'scanner',
-        tf: 'tf' in signal ? signal.tf : null,
-        strikeHint: 'strike_hint' in signal ? signal.strike_hint : null,
-        riskMult: 'risk_mult' in signal ? signal.risk_mult : null,
-        miyagi: 'miyagi' in signal ? signal.miyagi : null,
-        daily: 'daily' in signal ? signal.daily : null,
-        symbol: 'symbol' in signal ? signal.symbol : null,
-        newBias: 'new_bias' in signal ? signal.new_bias : null,
-        rawPayload: signal as any,
-        timestamp: new Date(signal.timestamp),
-        processed: false, // Mark as unprocessed initially
-      },
-    })
+    let storedSignal
+    try {
+      storedSignal = await prisma.signal.create({
+        data: {
+          type: signal.type,
+          direction: 'direction' in signal ? signal.direction : null,
+          signal: 'signal' in signal ? signal.signal : 'scanner',
+          tf: 'tf' in signal ? signal.tf : null,
+          strikeHint: 'strike_hint' in signal ? signal.strike_hint : null,
+          riskMult: 'risk_mult' in signal ? signal.risk_mult : null,
+          miyagi: 'miyagi' in signal ? signal.miyagi : null,
+          daily: 'daily' in signal ? signal.daily : null,
+          symbol: 'symbol' in signal ? signal.symbol : null,
+          newBias: 'new_bias' in signal ? signal.new_bias : null,
+          dedupeKey,
+          rawPayload: body as any,
+          timestamp: new Date(signal.timestamp),
+          processed: false, // Mark as unprocessed initially
+        },
+      })
+    } catch (e: any) {
+      // Unique constraint on dedupeKey → treat as idempotent replay
+      if (e?.code === 'P2002') {
+        const existing = await prisma.signal.findFirst({ where: { dedupeKey } })
+        return NextResponse.json({
+          success: true,
+          duplicate: true,
+          signalId: existing?.id || null,
+          message: 'Duplicate webhook ignored (idempotent)',
+        })
+      }
+      throw e
+    }
 
     signalId = storedSignal.id
 

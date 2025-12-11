@@ -11,6 +11,7 @@ import {
   Search, 
   Shield,
   BarChart3,
+  Wrench,
   TrendingUp
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/analytics', label: 'Analytics', icon: LayoutDashboard },
   { href: '/learning', label: 'Learning', icon: LayoutDashboard },
   { href: '/backtest', label: 'Backtest', icon: BarChart3 },
+  { href: '/ops', label: 'Ops', icon: Wrench },
   { href: '/risk', label: 'Risk', icon: Shield },
   { href: '/debug', label: 'Debug', icon: Shield },
 ]

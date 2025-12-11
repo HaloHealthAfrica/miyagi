@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PositionManager } from '@/services/positionManager'
+import { getClientIp, rateLimit } from '@/lib/rateLimit'
 
 // This endpoint monitors positions and closes them if exit conditions are met
 // Recommended: Call every 1-5 minutes during market hours
@@ -10,6 +11,12 @@ export async function GET(request: NextRequest) {
 
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const ip = getClientIp(request)
+  const rl = rateLimit(`cron:monitor-positions:${ip}`, Number(process.env.CRON_RL_LIMIT || 120), Number(process.env.CRON_RL_WINDOW_MS || 60_000))
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
   }
 
   try {

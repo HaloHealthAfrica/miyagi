@@ -43,6 +43,7 @@ model Signal {
   daily       String?  // "BULL" | "BEAR" | "NEUTRAL"
   symbol      String?  // for scanner events
   newBias     String?  // for scanner events
+  dedupeKey   String?  @unique // idempotency key (prevents duplicate webhook retries)
   rawPayload  Json     // full TradingView payload
   timestamp   DateTime
   processed   Boolean  @default(false)

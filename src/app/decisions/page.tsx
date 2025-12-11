@@ -5,22 +5,16 @@ import { MainLayout } from '@/components/layout/MainLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { useSignals } from '@/lib/api'
+import { useDecisions } from '@/lib/api'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
 export default function DecisionsPage() {
-  const { data, error, isLoading } = useSignals(100)
+  const { data, error, isLoading } = useDecisions(100)
   const [selectedDecision, setSelectedDecision] = useState<any>(null)
 
-  const signals = data?.signals || []
-  const decisions = signals.flatMap((signal: any) => 
-    (signal.decisions || []).map((decision: any) => ({
-      ...decision,
-      signal,
-    }))
-  )
+  const decisions = data?.decisions || []
 
   const getActionBadge = (action: string) => {
     const actionLower = action.toLowerCase()

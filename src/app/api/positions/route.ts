@@ -1,10 +1,18 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams
+    const status = searchParams.get('status')
+
+    const where: any = {}
+    if (status && status !== 'ALL') {
+      where.status = status
+    }
+
     const positions = await prisma.position.findMany({
-      where: { status: 'OPEN' },
+      where,
       include: {
         decision: {
           include: {

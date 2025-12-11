@@ -9,6 +9,13 @@ export function useSignals(limit = 100, type?: string) {
   return useSWR(url, fetcher, { refreshInterval: 5000 })
 }
 
+export function useDecisions(limit = 100, action?: string) {
+  const url = action
+    ? `/api/decisions?limit=${limit}&action=${action}`
+    : `/api/decisions?limit=${limit}`
+  return useSWR(url, fetcher, { refreshInterval: 5000 })
+}
+
 export function usePositions() {
   return useSWR('/api/positions', fetcher, { refreshInterval: 5000 })
 }

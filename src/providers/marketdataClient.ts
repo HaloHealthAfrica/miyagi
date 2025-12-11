@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
-import { OptionsChain, OptionsChainParams } from './base'
+import { OptionsChain, OptionsChainParams, OptionContract } from './base'
 
 export class MarketDataClient {
   private client: AxiosInstance
@@ -60,7 +60,7 @@ export class MarketDataClient {
 
       if (params.expiryFilters) {
         const now = new Date()
-        filteredContracts = filteredContracts.filter((c) => {
+        filteredContracts = filteredContracts.filter((c: OptionContract) => {
           const dte = Math.ceil((c.expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
           if (params.expiryFilters!.minDTE && dte < params.expiryFilters!.minDTE) return false
           if (params.expiryFilters!.maxDTE && dte > params.expiryFilters!.maxDTE) return false
@@ -69,7 +69,7 @@ export class MarketDataClient {
       }
 
       if (params.side) {
-        filteredContracts = filteredContracts.filter((c) => c.type === params.side)
+        filteredContracts = filteredContracts.filter((c: OptionContract) => c.type === params.side)
       }
 
       return {

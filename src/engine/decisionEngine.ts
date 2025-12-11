@@ -41,25 +41,39 @@ export class DecisionEngine {
     this.executionEnabled = process.env.EXECUTION_ENABLED === 'true'
   }
 
-  async processSignal(signal: TradingViewSignal, strategyId?: string): Promise<Decision> {
-    // Store signal first
-    const storedSignal = await prisma.signal.create({
-      data: {
-        type: signal.type,
-        direction: 'direction' in signal ? signal.direction : null,
-        signal: 'signal' in signal ? signal.signal : 'scanner',
-        tf: 'tf' in signal ? signal.tf : null,
-        strikeHint: 'strike_hint' in signal ? signal.strike_hint : null,
-        riskMult: 'risk_mult' in signal ? signal.risk_mult : null,
-        miyagi: 'miyagi' in signal ? signal.miyagi : null,
-        daily: 'daily' in signal ? signal.daily : null,
-        symbol: 'symbol' in signal ? signal.symbol : null,
-        newBias: 'new_bias' in signal ? signal.new_bias : null,
-        rawPayload: signal as any,
-        timestamp: new Date(signal.timestamp),
-        strategyId,
-      },
-    })
+  async processSignal(signal: TradingViewSignal, strategyId?: string, signalId?: string): Promise<Decision> {
+    // Get or create signal record
+    // If signalId is provided, use existing signal (already saved by webhook endpoint)
+    // Otherwise, create new signal (for backward compatibility or manual processing)
+    let storedSignal
+    if (signalId) {
+      storedSignal = await prisma.signal.findUnique({
+        where: { id: signalId },
+      })
+      if (!storedSignal) {
+        throw new Error(`Signal ${signalId} not found`)
+      }
+    } else {
+      // Fallback: create signal if not provided (for backward compatibility)
+      storedSignal = await prisma.signal.create({
+        data: {
+          type: signal.type,
+          direction: 'direction' in signal ? signal.direction : null,
+          signal: 'signal' in signal ? signal.signal : 'scanner',
+          tf: 'tf' in signal ? signal.tf : null,
+          strikeHint: 'strike_hint' in signal ? signal.strike_hint : null,
+          riskMult: 'risk_mult' in signal ? signal.risk_mult : null,
+          miyagi: 'miyagi' in signal ? signal.miyagi : null,
+          daily: 'daily' in signal ? signal.daily : null,
+          symbol: 'symbol' in signal ? signal.symbol : null,
+          newBias: 'new_bias' in signal ? signal.new_bias : null,
+          rawPayload: signal as any,
+          timestamp: new Date(signal.timestamp),
+          strategyId,
+          processed: false,
+        },
+      })
+    }
 
     try {
       let decision: Decision

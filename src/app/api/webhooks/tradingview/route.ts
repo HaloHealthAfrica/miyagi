@@ -128,22 +128,34 @@ export async function POST(request: NextRequest) {
       // Connection might already be established
     })
 
-    // Process signal through decision engine (this saves the signal)
-    const decisionEngine = new DecisionEngine()
-    const decision = await decisionEngine.processSignal(signal)
-
-    // Get the stored signal ID from the decision engine
-    const storedSignal = await prisma.signal.findFirst({
-      where: {
+    // STEP 1: Save signal to database FIRST (before processing)
+    // This ensures we have a record even if processing fails
+    const storedSignal = await prisma.signal.create({
+      data: {
         type: signal.type,
+        direction: 'direction' in signal ? signal.direction : null,
+        signal: 'signal' in signal ? signal.signal : 'scanner',
+        tf: 'tf' in signal ? signal.tf : null,
+        strikeHint: 'strike_hint' in signal ? signal.strike_hint : null,
+        riskMult: 'risk_mult' in signal ? signal.risk_mult : null,
+        miyagi: 'miyagi' in signal ? signal.miyagi : null,
+        daily: 'daily' in signal ? signal.daily : null,
+        symbol: 'symbol' in signal ? signal.symbol : null,
+        newBias: 'new_bias' in signal ? signal.new_bias : null,
+        rawPayload: signal as any,
         timestamp: new Date(signal.timestamp),
+        processed: false, // Mark as unprocessed initially
       },
-      orderBy: { createdAt: 'desc' },
     })
-    
-    if (storedSignal) {
-      signalId = storedSignal.id
-    }
+
+    signalId = storedSignal.id
+
+    console.log(`💾 Signal saved to database: ${signalId}`)
+
+    // STEP 2: Process signal through decision engine
+    // Now processSignal receives the signalId and doesn't need to save it
+    const decisionEngine = new DecisionEngine()
+    const decision = await decisionEngine.processSignal(signal, undefined, storedSignal.id)
 
     // Execute decision if not IGNORE
     if (decision.action !== 'IGNORE') {

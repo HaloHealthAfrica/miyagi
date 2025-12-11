@@ -50,6 +50,7 @@ model Signal {
 
   strategy    Strategy? @relation(fields: [strategyId], references: [id])
   decisions   Decision[]
+  outcomes    TradeOutcome[]
 }
 
 model Decision {
@@ -114,11 +115,18 @@ model Position {
   pnl           Float    @default(0)
   pnlPercent    Float    @default(0)
   status        String   @default("OPEN") // "OPEN" | "CLOSED"
+  stopLoss      Float?   // Stop loss price
+  takeProfit    Float?   // Take profit price
+  stopLossPercent Float? @default(5.0) // Stop loss as % of entry
+  takeProfitPercent Float? @default(10.0) // Take profit as % of entry
+  exitReason    String?  // "stop_loss" | "take_profit" | "expiry" | "manual" | "signal"
   openedAt      DateTime @default(now())
   closedAt      DateTime?
+  lastPriceUpdate DateTime? // Last time price was updated
 
   strategy      Strategy? @relation(fields: [strategyId], references: [id])
   decision      Decision? @relation(fields: [decisionId], references: [id])
+  outcomes      TradeOutcome[]
 }
 
 model Execution {
@@ -167,5 +175,27 @@ model RiskState {
   openPositions Int      @default(0)
   totalRisk     Float    @default(0)
   updatedAt     DateTime @updatedAt
+}
+
+model TradeOutcome {
+  id            String   @id @default(uuid())
+  positionId   String   @unique
+  decisionId    String
+  signalId     String?
+  entryPrice    Float
+  exitPrice     Float?
+  pnl           Float
+  pnlPercent    Float
+  holdTime      Int      // minutes
+  exitReason    String   // "stop_loss" | "take_profit" | "expiry" | "manual" | "signal"
+  createdAt     DateTime @default(now())
+
+  position      Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  decision      Decision @relation(fields: [decisionId], references: [id])
+  signal        Signal?  @relation(fields: [signalId], references: [id])
+
+  @@index([decisionId])
+  @@index([signalId])
+  @@index([exitReason])
 }
 

@@ -1,0 +1,42 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { PositionManager } from '@/services/positionManager'
+
+// This endpoint monitors positions and closes them if exit conditions are met
+// Recommended: Call every 1-5 minutes during market hours
+export async function GET(request: NextRequest) {
+  // Optional: Add authentication header check
+  const authHeader = request.headers.get('authorization')
+  const cronSecret = process.env.CRON_SECRET
+
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const positionManager = new PositionManager()
+    const result = await positionManager.monitorPositions()
+
+    return NextResponse.json({
+      success: true,
+      message: 'Position monitoring completed',
+      ...result,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (error: any) {
+    console.error('Position monitoring error:', error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    )
+  }
+}
+
+// Also support POST for external cron services
+export async function POST(request: NextRequest) {
+  return GET(request)
+}
+

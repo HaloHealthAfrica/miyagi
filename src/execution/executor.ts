@@ -106,6 +106,18 @@ export class ExecutionEngine {
     decisionId: string,
     entryPrice: number
   ): Promise<void> {
+    // Calculate stop loss and take profit (default 5% stop, 10% profit)
+    const stopLossPercent = 5.0
+    const takeProfitPercent = 10.0
+
+    const stopLoss = decision.direction === 'LONG'
+      ? entryPrice * (1 - stopLossPercent / 100)
+      : entryPrice * (1 + stopLossPercent / 100)
+
+    const takeProfit = decision.direction === 'LONG'
+      ? entryPrice * (1 + takeProfitPercent / 100)
+      : entryPrice * (1 - takeProfitPercent / 100)
+
     await prisma.position.create({
       data: {
         decisionId,
@@ -116,7 +128,13 @@ export class ExecutionEngine {
         quantity: decision.quantity,
         strike: decision.strike,
         entryPrice,
+        currentPrice: entryPrice, // Initialize with entry price
+        stopLoss,
+        takeProfit,
+        stopLossPercent,
+        takeProfitPercent,
         status: 'OPEN',
+        lastPriceUpdate: new Date(),
       },
     })
 

@@ -25,149 +25,152 @@ model Strategy {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  signals     Signal[]
-  decisions   Decision[]
-  positions   Position[]
+  signals   Signal[]
+  decisions Decision[]
+  positions Position[]
 }
 
 model Signal {
-  id          String   @id @default(uuid())
-  strategyId  String?
-  type        String   // "core" | "runner" | "scanner"
-  direction   String?  // "long" | "short"
-  signal      String   // e.g. "core_long", "runner_322_long"
-  tf          String?  // timeframe
-  strikeHint  Float?
-  riskMult    Float?
-  miyagi      String?  // "BULL" | "BEAR" | "NEUTRAL"
-  daily       String?  // "BULL" | "BEAR" | "NEUTRAL"
-  symbol      String?  // for scanner events
-  newBias     String?  // for scanner events
-  dedupeKey   String?  @unique // idempotency key (prevents duplicate webhook retries)
-  rawPayload  Json     // full TradingView payload
-  timestamp   DateTime
-  processed   Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  strategyId String?
+  type       String // "core" | "runner" | "scanner"
+  direction  String? // "long" | "short"
+  signal     String // e.g. "core_long", "runner_322_long"
+  tf         String? // timeframe
+  strikeHint Float?
+  riskMult   Float?
+  miyagi     String? // "BULL" | "BEAR" | "NEUTRAL"
+  daily      String? // "BULL" | "BEAR" | "NEUTRAL"
+  symbol     String? // for scanner events
+  newBias    String? // for scanner events
+  dedupeKey  String?  @unique // idempotency key (prevents duplicate webhook retries)
+  rawPayload Json // full TradingView payload
+  timestamp  DateTime
+  processed  Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
-  strategy    Strategy? @relation(fields: [strategyId], references: [id])
-  decisions   Decision[]
-  outcomes    TradeOutcome[]
-  quality     SignalQuality?
+  strategy       Strategy?       @relation(fields: [strategyId], references: [id])
+  decisions      Decision[]
+  outcomes       TradeOutcome[]
+  quality        SignalQuality?
+  backtestTrades BacktestTrade[]
 }
 
 model Decision {
-  id          String   @id @default(uuid())
-  signalId   String?
-  strategyId String?
-  action      String   // "OPEN_POSITION" | "ADD_POSITION" | "ADJUST_RISK" | "IGNORE"
-  symbol      String
-  direction   String   // "LONG" | "SHORT"
-  instrumentType String @default("OPTION") // "OPTION" | "STOCK"
-  broker      String   // "tradier" | "alpaca"
-  strike      Float?
-  side        String   // "BUY" | "SELL"
-  quantity    Int
-  meta        Json     // decision metadata
-  reasoning   String?  // human-readable reasoning
-  executed    Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id             String   @id @default(uuid())
+  signalId       String?
+  strategyId     String?
+  action         String // "OPEN_POSITION" | "ADD_POSITION" | "ADJUST_RISK" | "IGNORE"
+  symbol         String
+  direction      String // "LONG" | "SHORT"
+  instrumentType String   @default("OPTION") // "OPTION" | "STOCK"
+  broker         String // "tradier" | "alpaca"
+  strike         Float?
+  side           String // "BUY" | "SELL"
+  quantity       Int
+  meta           Json // decision metadata
+  reasoning      String? // human-readable reasoning
+  executed       Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
-  signal      Signal?  @relation(fields: [signalId], references: [id])
-  strategy    Strategy? @relation(fields: [strategyId], references: [id])
-  orders      Order[]
-  positions   Position[]
-  outcomes    TradeOutcome[]
+  signal         Signal?            @relation(fields: [signalId], references: [id])
+  strategy       Strategy?          @relation(fields: [strategyId], references: [id])
+  orders         Order[]
+  positions      Position[]
+  outcomes       TradeOutcome[]
+  backtestTrades BacktestTrade[]
+  approvals      DecisionApproval[]
 }
 
 model Order {
-  id            String   @id @default(uuid())
-  decisionId    String?
-  broker        String   // "tradier" | "alpaca"
-  brokerOrderId String?  // external order ID
-  symbol        String
-  instrumentType String  @default("OPTION")
-  side          String   // "BUY" | "SELL"
-  quantity      Int
-  strike        Float?
-  expiry        DateTime?
-  orderType     String   // "MARKET" | "LIMIT" | "STOP"
-  limitPrice    Float?
-  status        String   // "PENDING" | "SUBMITTED" | "FILLED" | "PARTIAL" | "CANCELLED" | "REJECTED"
-  brokerResponse Json?   // raw broker response
-  error         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             String    @id @default(uuid())
+  decisionId     String?
+  broker         String // "tradier" | "alpaca"
+  brokerOrderId  String? // external order ID
+  symbol         String
+  instrumentType String    @default("OPTION")
+  side           String // "BUY" | "SELL"
+  quantity       Int
+  strike         Float?
+  expiry         DateTime?
+  orderType      String // "MARKET" | "LIMIT" | "STOP"
+  limitPrice     Float?
+  status         String // "PENDING" | "SUBMITTED" | "FILLED" | "PARTIAL" | "CANCELLED" | "REJECTED"
+  brokerResponse Json? // raw broker response
+  error          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  decision      Decision? @relation(fields: [decisionId], references: [id])
-  executions    Execution[]
+  decision   Decision?   @relation(fields: [decisionId], references: [id])
+  executions Execution[]
 }
 
 model Position {
-  id            String   @id @default(uuid())
-  decisionId    String?
-  strategyId    String?
-  broker        String   // "tradier" | "alpaca"
-  symbol        String
-  instrumentType String  @default("OPTION")
-  direction     String   // "LONG" | "SHORT"
-  quantity      Int
-  strike        Float?
-  expiry        DateTime?
-  entryPrice    Float
-  currentPrice  Float?
-  pnl           Float    @default(0)
-  pnlPercent    Float    @default(0)
-  status        String   @default("OPEN") // "OPEN" | "CLOSED"
-  stopLoss      Float?   // Stop loss price
-  takeProfit    Float?   // Take profit price
-  stopLossPercent Float? @default(5.0) // Stop loss as % of entry
-  takeProfitPercent Float? @default(10.0) // Take profit as % of entry
-  exitReason    String?  // "stop_loss" | "take_profit" | "expiry" | "manual" | "signal"
-  openedAt      DateTime @default(now())
-  closedAt      DateTime?
-  lastPriceUpdate DateTime? // Last time price was updated
+  id                String    @id @default(uuid())
+  decisionId        String?
+  strategyId        String?
+  broker            String // "tradier" | "alpaca"
+  symbol            String
+  instrumentType    String    @default("OPTION")
+  direction         String // "LONG" | "SHORT"
+  quantity          Int
+  strike            Float?
+  expiry            DateTime?
+  entryPrice        Float
+  currentPrice      Float?
+  pnl               Float     @default(0)
+  pnlPercent        Float     @default(0)
+  status            String    @default("OPEN") // "OPEN" | "CLOSED"
+  stopLoss          Float? // Stop loss price
+  takeProfit        Float? // Take profit price
+  stopLossPercent   Float?    @default(5.0) // Stop loss as % of entry
+  takeProfitPercent Float?    @default(10.0) // Take profit as % of entry
+  exitReason        String? // "stop_loss" | "take_profit" | "expiry" | "manual" | "signal"
+  openedAt          DateTime  @default(now())
+  closedAt          DateTime?
+  lastPriceUpdate   DateTime? // Last time price was updated
 
-  strategy      Strategy? @relation(fields: [strategyId], references: [id])
-  decision      Decision? @relation(fields: [decisionId], references: [id])
-  outcomes      TradeOutcome[]
+  strategy Strategy?      @relation(fields: [strategyId], references: [id])
+  decision Decision?      @relation(fields: [decisionId], references: [id])
+  outcomes TradeOutcome[]
 }
 
 model Execution {
-  id            String   @id @default(uuid())
-  orderId       String
-  broker        String
-  brokerExecId  String?  // external execution ID
-  symbol        String
-  quantity      Int
-  price         Float
-  executedAt    DateTime
-  createdAt     DateTime @default(now())
+  id           String   @id @default(uuid())
+  orderId      String
+  broker       String
+  brokerExecId String? // external execution ID
+  symbol       String
+  quantity     Int
+  price        Float
+  executedAt   DateTime
+  createdAt    DateTime @default(now())
 
-  order         Order    @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
 }
 
 model ScannerEvent {
-  id          String   @id @default(uuid())
-  symbol      String
-  newBias     String   // "BULL" | "BEAR" | "NEUTRAL"
-  timestamp   DateTime
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  symbol    String
+  newBias   String // "BULL" | "BEAR" | "NEUTRAL"
+  timestamp DateTime
+  createdAt DateTime @default(now())
 
-  @@index([symbol, timestamp])
   @@unique([symbol, timestamp])
+  @@index([symbol, timestamp])
 }
 
 model RiskLimit {
-  id              String   @id @default(uuid())
-  name            String   @unique
-  maxPositions    Int      @default(5)
-  maxDailyLoss    Float    @default(1000.0)
-  maxRiskPerTrade Float    @default(500.0)
-  maxRunnersPerCore Int    @default(2)
-  enabled         Boolean  @default(true)
-  config          Json?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String   @id @default(uuid())
+  name              String   @unique
+  maxPositions      Int      @default(5)
+  maxDailyLoss      Float    @default(1000.0)
+  maxRiskPerTrade   Float    @default(500.0)
+  maxRunnersPerCore Int      @default(2)
+  enabled           Boolean  @default(true)
+  config            Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model RiskState {
@@ -181,21 +184,21 @@ model RiskState {
 }
 
 model TradeOutcome {
-  id            String   @id @default(uuid())
-  positionId   String   @unique
-  decisionId    String
-  signalId     String?
-  entryPrice    Float
-  exitPrice     Float?
-  pnl           Float
-  pnlPercent    Float
-  holdTime      Int      // minutes
-  exitReason    String   // "stop_loss" | "take_profit" | "expiry" | "manual" | "signal"
-  createdAt     DateTime @default(now())
+  id         String   @id @default(uuid())
+  positionId String   @unique
+  decisionId String
+  signalId   String?
+  entryPrice Float
+  exitPrice  Float?
+  pnl        Float
+  pnlPercent Float
+  holdTime   Int // minutes
+  exitReason String // "stop_loss" | "take_profit" | "expiry" | "manual" | "signal"
+  createdAt  DateTime @default(now())
 
-  position      Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
-  decision      Decision @relation(fields: [decisionId], references: [id])
-  signal        Signal?  @relation(fields: [signalId], references: [id])
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  decision Decision @relation(fields: [decisionId], references: [id])
+  signal   Signal?  @relation(fields: [signalId], references: [id])
 
   @@index([decisionId])
   @@index([signalId])
@@ -205,7 +208,7 @@ model TradeOutcome {
 
 model PerformanceMetrics {
   id            String   @id @default(uuid())
-  period        String   // "daily" | "weekly" | "monthly" | "all"
+  period        String // "daily" | "weekly" | "monthly" | "all"
   startDate     DateTime
   endDate       DateTime
   totalTrades   Int      @default(0)
@@ -217,7 +220,7 @@ model PerformanceMetrics {
   sharpeRatio   Float    @default(0)
   maxDrawdown   Float    @default(0)
   profitFactor  Float    @default(0)
-  metrics       Json     // Full metrics snapshot
+  metrics       Json // Full metrics snapshot
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -226,94 +229,94 @@ model PerformanceMetrics {
 }
 
 model SignalQuality {
-  id            String   @id @default(uuid())
-  signalId      String   @unique
-  tfcScore      Float?   // Trend/Follow/Confirmation score
-  volScore      Float?   // Volatility score
-  outcome       String?  // "win" | "loss" | "breakeven"
-  pnl           Float?   // P&L from this signal
-  successRate   Float    @default(0) // Success rate for this signal pattern
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(uuid())
+  signalId    String   @unique
+  tfcScore    Float? // Trend/Follow/Confirmation score
+  volScore    Float? // Volatility score
+  outcome     String? // "win" | "loss" | "breakeven"
+  pnl         Float? // P&L from this signal
+  successRate Float    @default(0) // Success rate for this signal pattern
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  signal        Signal   @relation(fields: [signalId], references: [id], onDelete: Cascade)
+  signal Signal @relation(fields: [signalId], references: [id], onDelete: Cascade)
 
   @@index([successRate])
   @@index([outcome])
 }
 
 model BacktestRun {
-  id              String   @id @default(uuid())
-  name            String
-  symbol          String
-  experimentId    String?
-  startDate       DateTime
-  endDate         DateTime
-  timeframe       String   @default("5min")
-  stopLossPercent Float    @default(5.0)
-  takeProfitPercent Float  @default(10.0)
-  slippageBps     Float    @default(0)  // per-side slippage in basis points
-  feePerTrade     Float    @default(0)  // flat fee per trade (applied once)
-  maxHoldBars     Int      @default(78) // ~1 trading day of 5m bars
-  positionSize    Int      @default(1)  // contracts/shares proxy
-  contractMultiplier Int   @default(100)
+  id                 String   @id @default(uuid())
+  name               String
+  symbol             String
+  experimentId       String?
+  startDate          DateTime
+  endDate            DateTime
+  timeframe          String   @default("5min")
+  stopLossPercent    Float    @default(5.0)
+  takeProfitPercent  Float    @default(10.0)
+  slippageBps        Float    @default(0) // per-side slippage in basis points
+  feePerTrade        Float    @default(0) // flat fee per trade (applied once)
+  maxHoldBars        Int      @default(78) // ~1 trading day of 5m bars
+  positionSize       Int      @default(1) // contracts/shares proxy
+  contractMultiplier Int      @default(100)
 
-  totalTrades     Int      @default(0)
-  winningTrades   Int      @default(0)
-  losingTrades    Int      @default(0)
-  winRate         Float    @default(0)
-  totalPnL        Float    @default(0)
-  averagePnL      Float    @default(0)
-  maxDrawdown     Float    @default(0)
-  sharpeRatio     Float    @default(0)
+  totalTrades   Int   @default(0)
+  winningTrades Int   @default(0)
+  losingTrades  Int   @default(0)
+  winRate       Float @default(0)
+  totalPnL      Float @default(0)
+  averagePnL    Float @default(0)
+  maxDrawdown   Float @default(0)
+  sharpeRatio   Float @default(0)
 
-  results         Json?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  results   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  trades          BacktestTrade[]
-  experiment      BacktestExperiment? @relation(fields: [experimentId], references: [id], onDelete: SetNull)
+  trades     BacktestTrade[]
+  experiment BacktestExperiment? @relation(fields: [experimentId], references: [id], onDelete: SetNull)
 
   @@index([symbol, startDate, endDate])
   @@index([experimentId])
 }
 
 model BacktestExperiment {
-  id            String   @id @default(uuid())
-  name          String
-  kind          String   // "sweep" | "walkforward" | "montecarlo"
-  config        Json
-  status        String   @default("QUEUED") // "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED"
-  result        Json?
-  error         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  kind      String // "sweep" | "walkforward" | "montecarlo"
+  config    Json
+  status    String   @default("QUEUED") // "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED"
+  result    Json?
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  runs          BacktestRun[]
+  runs BacktestRun[]
 
   @@index([kind, status])
 }
 
 model BacktestTrade {
-  id            String   @id @default(uuid())
+  id            String  @id @default(uuid())
   backtestRunId String
   signalId      String?
   decisionId    String?
 
-  direction     String   // "LONG" | "SHORT"
-  entryTime     DateTime
-  exitTime      DateTime
-  entryPrice    Float
-  exitPrice     Float
-  pnl           Float
-  pnlPercent    Float
-  exitReason    String   // "stop_loss" | "take_profit" | "timeout" | "data_missing"
+  direction  String // "LONG" | "SHORT"
+  entryTime  DateTime
+  exitTime   DateTime
+  entryPrice Float
+  exitPrice  Float
+  pnl        Float
+  pnlPercent Float
+  exitReason String // "stop_loss" | "take_profit" | "timeout" | "data_missing"
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  backtestRun   BacktestRun @relation(fields: [backtestRunId], references: [id], onDelete: Cascade)
-  signal        Signal?      @relation(fields: [signalId], references: [id], onDelete: SetNull)
-  decision      Decision?    @relation(fields: [decisionId], references: [id], onDelete: SetNull)
+  backtestRun BacktestRun @relation(fields: [backtestRunId], references: [id], onDelete: Cascade)
+  signal      Signal?     @relation(fields: [signalId], references: [id], onDelete: SetNull)
+  decision    Decision?   @relation(fields: [decisionId], references: [id], onDelete: SetNull)
 
   @@index([backtestRunId])
   @@index([entryTime])
@@ -321,38 +324,37 @@ model BacktestTrade {
 }
 
 model Job {
-  id          String   @id @default(uuid())
-  type        String   // "PROCESS_SIGNAL" | "EXECUTE_DECISION" | ...
-  status      String   @default("PENDING") // "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELLED"
-  priority    Int      @default(0)
-  dedupeKey   String?  @unique // idempotency key for queueing (prevents duplicate jobs)
+  id        String  @id @default(uuid())
+  type      String // "PROCESS_SIGNAL" | "EXECUTE_DECISION" | ...
+  status    String  @default("PENDING") // "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELLED"
+  priority  Int     @default(0)
+  dedupeKey String? @unique // idempotency key for queueing (prevents duplicate jobs)
 
-  payload     Json
-  result      Json?
-  error       String?
+  payload Json
+  result  Json?
+  error   String?
 
-  attempts    Int      @default(0)
-  maxAttempts Int      @default(5)
-  nextRunAt   DateTime @default(now())
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  nextRunAt   DateTime  @default(now())
   lockedAt    DateTime?
   lockedBy    String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status, nextRunAt])
   @@index([type, status])
 }
 
 model DecisionApproval {
-  id          String   @id @default(uuid())
-  decisionId  String
-  approverId  String
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  decisionId String
+  approverId String
+  createdAt  DateTime @default(now())
 
-  decision    Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  decision Decision @relation(fields: [decisionId], references: [id], onDelete: Cascade)
 
   @@unique([decisionId, approverId])
   @@index([decisionId])
 }
-

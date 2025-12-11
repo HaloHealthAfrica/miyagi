@@ -1,0 +1,165 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Strategy {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  enabled     Boolean  @default(true)
+  config      Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  signals     Signal[]
+  decisions   Decision[]
+  positions   Position[]
+}
+
+model Signal {
+  id          String   @id @default(uuid())
+  strategyId  String?
+  type        String   // "core" | "runner" | "scanner"
+  direction   String?  // "long" | "short"
+  signal      String   // e.g. "core_long", "runner_322_long"
+  tf          String?  // timeframe
+  strikeHint  Float?
+  riskMult    Float?
+  miyagi      String?  // "BULL" | "BEAR" | "NEUTRAL"
+  daily       String?  // "BULL" | "BEAR" | "NEUTRAL"
+  symbol      String?  // for scanner events
+  newBias     String?  // for scanner events
+  rawPayload  Json     // full TradingView payload
+  timestamp   DateTime
+  processed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  strategy    Strategy? @relation(fields: [strategyId], references: [id])
+  decisions   Decision[]
+}
+
+model Decision {
+  id          String   @id @default(uuid())
+  signalId   String?
+  strategyId String?
+  action      String   // "OPEN_POSITION" | "ADD_POSITION" | "ADJUST_RISK" | "IGNORE"
+  symbol      String
+  direction   String   // "LONG" | "SHORT"
+  instrumentType String @default("OPTION") // "OPTION" | "STOCK"
+  broker      String   // "tradier" | "alpaca"
+  strike      Float?
+  side        String   // "BUY" | "SELL"
+  quantity    Int
+  meta        Json     // decision metadata
+  reasoning   String?  // human-readable reasoning
+  executed    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  signal      Signal?  @relation(fields: [signalId], references: [id])
+  strategy    Strategy? @relation(fields: [strategyId], references: [id])
+  orders      Order[]
+  positions   Position[]
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  decisionId    String?
+  broker        String   // "tradier" | "alpaca"
+  brokerOrderId String?  // external order ID
+  symbol        String
+  instrumentType String  @default("OPTION")
+  side          String   // "BUY" | "SELL"
+  quantity      Int
+  strike        Float?
+  expiry        DateTime?
+  orderType     String   // "MARKET" | "LIMIT" | "STOP"
+  limitPrice    Float?
+  status        String   // "PENDING" | "SUBMITTED" | "FILLED" | "PARTIAL" | "CANCELLED" | "REJECTED"
+  brokerResponse Json?   // raw broker response
+  error         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  decision      Decision? @relation(fields: [decisionId], references: [id])
+  executions    Execution[]
+}
+
+model Position {
+  id            String   @id @default(uuid())
+  decisionId    String?
+  strategyId    String?
+  broker        String   // "tradier" | "alpaca"
+  symbol        String
+  instrumentType String  @default("OPTION")
+  direction     String   // "LONG" | "SHORT"
+  quantity      Int
+  strike        Float?
+  expiry        DateTime?
+  entryPrice    Float
+  currentPrice  Float?
+  pnl           Float    @default(0)
+  pnlPercent    Float    @default(0)
+  status        String   @default("OPEN") // "OPEN" | "CLOSED"
+  openedAt      DateTime @default(now())
+  closedAt      DateTime?
+
+  strategy      Strategy? @relation(fields: [strategyId], references: [id])
+  decision      Decision? @relation(fields: [decisionId], references: [id])
+}
+
+model Execution {
+  id            String   @id @default(uuid())
+  orderId       String
+  broker        String
+  brokerExecId  String?  // external execution ID
+  symbol        String
+  quantity      Int
+  price         Float
+  executedAt    DateTime
+  createdAt     DateTime @default(now())
+
+  order         Order    @relation(fields: [orderId], references: [id])
+}
+
+model ScannerEvent {
+  id          String   @id @default(uuid())
+  symbol      String
+  newBias     String   // "BULL" | "BEAR" | "NEUTRAL"
+  timestamp   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([symbol, timestamp])
+  @@unique([symbol, timestamp])
+}
+
+model RiskLimit {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  maxPositions    Int      @default(5)
+  maxDailyLoss    Float    @default(1000.0)
+  maxRiskPerTrade Float    @default(500.0)
+  maxRunnersPerCore Int    @default(2)
+  enabled         Boolean  @default(true)
+  config          Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model RiskState {
+  id            String   @id @default(uuid())
+  date          DateTime @unique @default(now())
+  dailyPnL      Float    @default(0)
+  dailyTrades   Int      @default(0)
+  openPositions Int      @default(0)
+  totalRisk     Float    @default(0)
+  updatedAt     DateTime @updatedAt
+}
+

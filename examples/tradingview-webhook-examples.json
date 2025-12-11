@@ -1,0 +1,53 @@
+{
+  "core_long_example": {
+    "type": "core",
+    "direction": "long",
+    "signal": "core_long",
+    "tf": "5",
+    "strike_hint": 5230.45,
+    "risk_mult": 1.23,
+    "miyagi": "BULL",
+    "daily": "BULL",
+    "timestamp": "2025-02-10T14:32:00Z"
+  },
+  "core_short_example": {
+    "type": "core",
+    "direction": "short",
+    "signal": "core_short",
+    "tf": "5",
+    "strike_hint": 5211.30,
+    "risk_mult": 1.18,
+    "miyagi": "BEAR",
+    "daily": "BEAR",
+    "timestamp": "2025-02-10T14:35:00Z"
+  },
+  "runner_long_example": {
+    "type": "runner",
+    "direction": "long",
+    "signal": "runner_322_long",
+    "tf": "5",
+    "strike_hint": 5242.10,
+    "risk_mult": 0.62,
+    "miyagi": "BULL",
+    "daily": "BULL",
+    "timestamp": "2025-02-10T15:05:00Z"
+  },
+  "runner_short_example": {
+    "type": "runner",
+    "direction": "short",
+    "signal": "runner_322_short",
+    "tf": "5",
+    "strike_hint": 5196.80,
+    "risk_mult": 0.58,
+    "miyagi": "BEAR",
+    "daily": "BEAR",
+    "timestamp": "2025-02-10T15:12:00Z"
+  },
+  "scanner_example": {
+    "type": "scanner",
+    "symbol": "SPY",
+    "new_bias": "BULL",
+    "timestamp": "2025-02-10T14:30:00Z"
+  }
+}
+

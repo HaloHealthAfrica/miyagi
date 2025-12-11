@@ -90,8 +90,8 @@ export function useBacktestRuns() {
 }
 
 export function useBacktestRun(runId?: string) {
-  if (!runId) return { data: undefined, error: undefined, isLoading: false } as any
-  return useSWR(`/api/backtest?runId=${encodeURIComponent(runId)}`, fetcher, { refreshInterval: 30000 })
+  const key = runId ? `/api/backtest?runId=${encodeURIComponent(runId)}` : null
+  return useSWR(key, fetcher, { refreshInterval: 30000 })
 }
 
 export async function runBacktest(payload: any) {
@@ -112,8 +112,8 @@ export function useResearchExperiments() {
 }
 
 export function useResearchExperiment(experimentId?: string) {
-  if (!experimentId) return { data: undefined, error: undefined, isLoading: false } as any
-  return useSWR(`/api/research?experimentId=${encodeURIComponent(experimentId)}`, fetcher, { refreshInterval: 5000 })
+  const key = experimentId ? `/api/research?experimentId=${encodeURIComponent(experimentId)}` : null
+  return useSWR(key, fetcher, { refreshInterval: 5000 })
 }
 
 export async function runResearchExperiment(config: any) {

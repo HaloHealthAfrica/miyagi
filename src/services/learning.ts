@@ -261,7 +261,7 @@ export class LearningService {
     }
 
     // Analyze exit reasons
-    const exitReasonStats: Record<string, { count: number; avgPnL: number }> = {}
+    const exitReasonStats: Record<string, { count: number; avgPnL: number; pnls: number[] }> = {}
     outcomes.forEach((o) => {
       if (!exitReasonStats[o.exitReason]) {
         exitReasonStats[o.exitReason] = { count: 0, avgPnL: 0, pnls: [] }

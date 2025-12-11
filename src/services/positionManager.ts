@@ -42,7 +42,7 @@ export class PositionManager {
     for (const position of openPositions) {
       checked++
       const shouldClose = await this.checkExitConditions(position)
-      if (shouldClose) {
+      if (shouldClose.shouldClose) {
         await this.closePosition(position.id, shouldClose.reason, shouldClose.exitPrice)
         closed++
       }
@@ -54,7 +54,12 @@ export class PositionManager {
   /**
    * Check if position should be closed based on exit conditions
    */
-  async checkExitConditions(position: any): Promise<{ shouldClose: boolean; reason?: ExitReason; exitPrice?: number }> {
+  async checkExitConditions(
+    position: any
+  ): Promise<
+    | { shouldClose: false }
+    | { shouldClose: true; reason: ExitReason; exitPrice: number }
+  > {
     // Check expiry first (highest priority)
     if (position.expiry && new Date(position.expiry) <= new Date()) {
       return {

@@ -136,8 +136,8 @@ export class PriceUpdater {
           (c: any) => c.strike === position.strike && c.expiry >= new Date()
         )
 
-        if (contract && contract.lastPrice) {
-          return contract.lastPrice
+        if (contract && contract.last) {
+          return contract.last
         }
       } catch (e) {
         // Fall through

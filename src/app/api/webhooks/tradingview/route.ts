@@ -51,13 +51,13 @@ export async function POST(request: NextRequest) {
   try {
     // Optional auth (recommended in production)
     const expectedSecret = process.env.TV_WEBHOOK_SECRET
-    if (expectedSecret) {
-      const headerSecret = request.headers.get('x-tv-secret') || request.headers.get('x-webhook-secret')
-      // TradingView can’t always send custom headers; allow secret inside JSON payload as `secret` too.
-      // (We’ll check body.secret after parsing.)
-      if (headerSecret && headerSecret !== expectedSecret) {
-        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-      }
+    const headerSecret =
+      request.headers.get('x-tv-secret') || request.headers.get('x-webhook-secret')
+
+    // TradingView can’t always send custom headers; allow secret inside JSON payload as `secret` too.
+    // If a header secret is provided, it must match immediately.
+    if (expectedSecret && headerSecret && headerSecret !== expectedSecret) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
     // Rate limit (best-effort)
@@ -150,11 +150,9 @@ export async function POST(request: NextRequest) {
     const signal = validationResult.data as TradingViewSignal
 
     // Secret validation via body (if header wasn’t provided)
-    const expectedSecret = process.env.TV_WEBHOOK_SECRET
-    if (expectedSecret) {
-      const headerSecret = request.headers.get('x-tv-secret') || request.headers.get('x-webhook-secret')
+    if (expectedSecret && !headerSecret) {
       const bodySecret = body?.secret
-      if (!headerSecret && bodySecret !== expectedSecret) {
+      if (bodySecret !== expectedSecret) {
         return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
       }
     }

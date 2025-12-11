@@ -87,7 +87,7 @@ export default function LearningPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {analysis.recommendations.map((rec, idx) => (
+                {analysis.recommendations.map((rec: string, idx: number) => (
                   <div key={idx} className="p-3 bg-muted rounded-lg text-sm">
                     {rec}
                   </div>

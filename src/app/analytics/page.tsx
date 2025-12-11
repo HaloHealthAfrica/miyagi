@@ -343,7 +343,11 @@ export default function AnalyticsPage() {
               <div>
                 <h3 className="font-semibold mb-4">Top Performing Signals</h3>
                 <div className="space-y-2">
-                  {signalQuality.topPerformingSignals?.slice(0, 5).map((signal, idx) => (
+                  {signalQuality.topPerformingSignals?.slice(0, 5).map(
+                    (
+                      signal: { signal: string; count: number; winRate: number; avgPnL: number },
+                      idx: number
+                    ) => (
                     <div key={idx} className="flex items-center justify-between p-2 bg-muted rounded">
                       <div>
                         <div className="font-medium text-sm">{signal.signal}</div>
@@ -358,7 +362,8 @@ export default function AnalyticsPage() {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    )
+                  )}
                 </div>
               </div>
             </div>

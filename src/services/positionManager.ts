@@ -202,7 +202,7 @@ export class PositionManager {
 
     // Create trade outcome for learning loop
     if (position.decisionId) {
-      await prisma.tradeOutcome.create({
+      const outcome = await prisma.tradeOutcome.create({
         data: {
           positionId,
           decisionId: position.decisionId,
@@ -215,6 +215,18 @@ export class PositionManager {
           exitReason: reason,
         },
       })
+
+      // Update signal quality for learning loop
+      if (position.decision?.signalId) {
+        try {
+          const { LearningService } = await import('@/services/learning')
+          const learningService = new LearningService()
+          await learningService.updateSignalQuality(position.decision.signalId, outcome)
+        } catch (error: any) {
+          console.error('Failed to update signal quality:', error)
+          // Non-fatal, continue
+        }
+      }
     }
 
     // If execution is enabled, close position with broker

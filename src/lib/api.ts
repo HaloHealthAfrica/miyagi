@@ -64,3 +64,23 @@ export function useAnalytics(startDate?: string, endDate?: string, type: 'metric
   return useSWR(url, fetcher, { refreshInterval: 30000 }) // Refresh every 30 seconds
 }
 
+export function useLearningAnalysis(startDate?: string, endDate?: string) {
+  const params = new URLSearchParams()
+  if (startDate) params.append('startDate', startDate)
+  if (endDate) params.append('endDate', endDate)
+  const url = `/api/learning/analyze?${params.toString()}`
+  return useSWR(url, fetcher, { refreshInterval: 60000 }) // Refresh every minute
+}
+
+export function useOptimizations() {
+  return useSWR('/api/learning/optimize', fetcher, { refreshInterval: 300000 }) // Refresh every 5 minutes
+}
+
+export function useSignalQuality(signalId?: string, signalPattern?: string) {
+  const params = new URLSearchParams()
+  if (signalId) params.append('signalId', signalId)
+  if (signalPattern) params.append('signal', signalPattern)
+  const url = `/api/learning/signal-quality?${params.toString()}`
+  return useSWR(url, fetcher, { refreshInterval: 60000 })
+}
+

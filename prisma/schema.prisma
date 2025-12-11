@@ -51,6 +51,7 @@ model Signal {
   strategy    Strategy? @relation(fields: [strategyId], references: [id])
   decisions   Decision[]
   outcomes    TradeOutcome[]
+  quality     SignalQuality?
 }
 
 model Decision {
@@ -221,5 +222,22 @@ model PerformanceMetrics {
 
   @@unique([period, startDate, endDate])
   @@index([startDate, endDate])
+}
+
+model SignalQuality {
+  id            String   @id @default(uuid())
+  signalId      String   @unique
+  tfcScore      Float?   // Trend/Follow/Confirmation score
+  volScore      Float?   // Volatility score
+  outcome       String?  // "win" | "loss" | "breakeven"
+  pnl           Float?   // P&L from this signal
+  successRate   Float    @default(0) // Success rate for this signal pattern
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  signal        Signal   @relation(fields: [signalId], references: [id], onDelete: Cascade)
+
+  @@index([successRate])
+  @@index([outcome])
 }
 

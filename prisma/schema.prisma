@@ -358,3 +358,37 @@ model DecisionApproval {
   @@unique([decisionId, approverId])
   @@index([decisionId])
 }
+
+/// Generic per-strategy setup records (used by Failed2ChainSwing and future strategies).
+model StrategySetup {
+  id              String   @id @default(uuid())
+  symbol          String
+  strategyId      String
+  eventType       String
+  direction       String
+  timeframe       String
+  status          String
+  entry           Float
+  stop            Float
+  tp1             Float
+  tp2             Float
+  confidence      Float?
+  expiryHint      String?
+  optionSuggested String?
+  reasonCodes     Json
+  gates           Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([strategyId, symbol, createdAt])
+}
+
+/// Per-symbol swing state machine for swing-ready alerts.
+model SwingState {
+  symbol              String   @id
+  state               String
+  armedAt             DateTime?
+  confirmedAt         DateTime?
+  lastPrecloseAlertAt DateTime?
+  updatedAt           DateTime @updatedAt
+}

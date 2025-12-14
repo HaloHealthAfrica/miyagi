@@ -27,12 +27,12 @@ export class RedisAuditLogStore implements AuditLogStore {
   }
 
   async listEvents(limit: number): Promise<AuditEventRecord[]> {
-    const items = await this.redis.lrange<string[]>(this.eventsKey, 0, Math.max(0, limit - 1))
+    const items = await this.redis.lrange<string>(this.eventsKey, 0, Math.max(0, limit - 1))
     return items.map((s) => JSON.parse(s) as AuditEventRecord)
   }
 
   async listDecisions(limit: number): Promise<AuditDecisionRecord[]> {
-    const items = await this.redis.lrange<string[]>(this.decisionsKey, 0, Math.max(0, limit - 1))
+    const items = await this.redis.lrange<string>(this.decisionsKey, 0, Math.max(0, limit - 1))
     return items.map((s) => JSON.parse(s) as AuditDecisionRecord)
   }
 }

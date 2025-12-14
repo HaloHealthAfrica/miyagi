@@ -22,8 +22,9 @@ export class RedisStateIndexStore implements StateIndexStore {
   async listRecent(opts: { prefix?: string; limit: number }): Promise<string[]> {
     const limit = Math.max(1, Math.min(500, opts.limit))
     const items = await this.redis.zrange<string[]>(this.zsetKey, 0, limit - 1, { rev: true })
-    if (!opts.prefix) return items
-    return items.filter((k) => k.startsWith(opts.prefix))
+    const prefix = opts.prefix
+    if (!prefix) return items
+    return items.filter((k) => k.startsWith(prefix))
   }
 }
 

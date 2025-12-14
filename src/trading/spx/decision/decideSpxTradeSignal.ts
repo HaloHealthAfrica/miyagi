@@ -93,8 +93,9 @@ export function decideSpxTradeSignal(input: {
   let priceValidationOk = false
 
   if (hasPrices && directionOk) {
+    const tradeDirection = event.direction as 'LONG' | 'SHORT'
     priceValidationOk = validateStopsAndTargets({
-      direction: event.direction,
+      direction: tradeDirection,
       entry: entry!,
       stop: stop!,
       targets: targets!,
@@ -113,7 +114,7 @@ export function decideSpxTradeSignal(input: {
         tradePlan = {
           symbol: event.symbol,
           timeframe: event.timeframe,
-          direction: event.direction,
+          direction: tradeDirection,
           qty,
           entry: entry!,
           stop: stop!,

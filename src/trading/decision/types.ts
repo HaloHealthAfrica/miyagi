@@ -1,5 +1,6 @@
 import type { ExecutionMode } from '@/trading/config'
 import type { MarketEvent } from '@/trading/types'
+import type { StrategyId } from '@/trading/types'
 
 export type DecisionOutcome = 'EXECUTE_PAPER' | 'EXECUTE_LIVE' | 'REJECT'
 
@@ -22,7 +23,7 @@ export type TradePlan = {
 }
 
 export type DecisionRecord = {
-  strategyId: 'MIYAGI' | 'SPX'
+  strategyId: StrategyId
   event: MarketEvent
   outcome: DecisionOutcome
   executionMode: ExecutionMode

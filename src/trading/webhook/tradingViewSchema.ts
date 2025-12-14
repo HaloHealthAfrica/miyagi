@@ -31,7 +31,9 @@ const canonicalSchema = z
   })
   .passthrough()
 
-export const tradingViewWebhookSchema = z.union([legacySchema, canonicalSchema]).passthrough()
+// Note: `passthrough()` must be applied to the object schemas (above).
+// Zod unions do not support `.passthrough()`.
+export const tradingViewWebhookSchema = z.union([legacySchema, canonicalSchema])
 
 export type TradingViewWebhookPayload = z.infer<typeof tradingViewWebhookSchema>
 

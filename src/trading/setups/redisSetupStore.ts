@@ -27,7 +27,7 @@ export class RedisSetupStore implements SetupStore {
 
   async list(symbol: string, strategyId: string, limit: number): Promise<StrategySetupRecord[]> {
     const n = Math.max(1, Math.min(200, limit))
-    const items = await this.redis.lrange<string[]>(listKeyFor(symbol, strategyId), 0, n - 1)
+    const items = await this.redis.lrange<string>(listKeyFor(symbol, strategyId), 0, n - 1)
     return items.map((s) => JSON.parse(s) as StrategySetupRecord)
   }
 }

@@ -1,5 +1,5 @@
 import type { StrategyConfig } from '@/trading/config'
-import { FAILED2CHAIN_CONFIG, SPX_CONFIG } from '@/trading/config'
+import { SPX_CONFIG, STRAT_FAILED2CHAIN_SWING_CONFIG } from '@/trading/config'
 import type { AuditLogStore } from '@/trading/audit/auditLogStore'
 import type { AuditDecisionRecord, AuditEventRecord } from '@/trading/audit/types'
 import type { IdempotencyStore } from '@/trading/idempotency/idempotencyStore'
@@ -44,7 +44,7 @@ function gate(gateName: string, pass: boolean, detail?: string): GateResult {
 function strategyConfig(strategyId: StrategyId): StrategyConfig {
   // For this task we implement SPX end-to-end. MIYAGI can be added similarly.
   if (strategyId === 'SPX') return SPX_CONFIG
-  if (strategyId === 'FAILED2CHAIN') return FAILED2CHAIN_CONFIG
+  if (strategyId === 'StratFailed2ChainSwing') return STRAT_FAILED2CHAIN_SWING_CONFIG
   return { ...SPX_CONFIG, strategyId: 'MIYAGI' }
 }
 
@@ -131,9 +131,9 @@ export async function processTradingViewWebhook(input: ProcessWebhookInput): Pro
       reason: 'INFO event processed (state updated only)',
     }
   } else {
-    if (strategyId === 'FAILED2CHAIN') {
+    if (strategyId === 'StratFailed2ChainSwing') {
       // Attempt counts are derived from recent setups (no implicit state mutations).
-      const recent = await stores.setupStore.list(normalized.symbol, 'FAILED2CHAIN', 50)
+      const recent = await stores.setupStore.list(normalized.symbol, 'StratFailed2ChainSwing', 50)
       const attemptCounts: Record<string, number> = {}
       for (const s of recent) {
         const key = `${s.symbol.toUpperCase()}:${s.direction}:${Math.round(s.entry)}`

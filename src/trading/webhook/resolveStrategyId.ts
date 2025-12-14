@@ -11,7 +11,9 @@ import type { MarketEvent, StrategyId } from '@/trading/types'
 export function resolveStrategyId(event: MarketEvent): StrategyId {
   const raw = event.payload ?? {}
   const candidate = (raw.strategy_id ?? raw.strategyId ?? raw.strategy) as unknown
-  if (candidate === 'MIYAGI' || candidate === 'SPX' || candidate === 'FAILED2CHAIN') return candidate
+  if (candidate === 'MIYAGI' || candidate === 'SPX' || candidate === 'StratFailed2ChainSwing') return candidate
+  // Backward-compatible alias
+  if (candidate === 'FAILED2CHAIN') return 'StratFailed2ChainSwing'
 
   const strict = process.env.TV_STRATEGY_ID_REQUIRED === '1' || process.env.TV_STRATEGY_ID_REQUIRED === 'true'
   if (strict) return 'MIYAGI'
@@ -28,7 +30,7 @@ export function resolveStrategyId(event: MarketEvent): StrategyId {
     event.event === 'SWING_PRE_CLOSE' ||
     event.event === 'SWING_CONFIRMED'
   )
-    return 'FAILED2CHAIN'
+    return 'StratFailed2ChainSwing'
 
   const symbol = (event.symbol || '').toUpperCase()
   if (symbol.includes('SPX')) return 'SPX'

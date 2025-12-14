@@ -8,12 +8,9 @@ export async function GET(req: Request) {
   const symbol = url.searchParams.get('symbol')
   if (!symbol) return NextResponse.json({ ok: false, error: 'Missing symbol' }, { status: 400 })
 
-  const limit = Math.max(1, Math.min(200, Number(url.searchParams.get('limit') ?? 50)))
   const { setupStore } = getTradingRuntime()
-  // Backward-compatible route; canonical strategy id is StratFailed2ChainSwing.
-  const setups = await setupStore.list(symbol, 'StratFailed2ChainSwing', limit)
-  return NextResponse.json({ ok: true, symbol, count: setups.length, setups })
+  const setup = await setupStore.getLatest(symbol, 'StratFailed2ChainSwing')
+  return NextResponse.json({ ok: true, symbol, strategyId: 'StratFailed2ChainSwing', setup })
 }
-
 
 

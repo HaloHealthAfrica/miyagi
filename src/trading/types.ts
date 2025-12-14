@@ -50,6 +50,6 @@ export type MarketEvent = {
   timestamp: number
 }
 
-export type StrategyId = 'MIYAGI' | 'SPX' | 'FAILED2CHAIN'
+export type StrategyId = 'MIYAGI' | 'SPX' | 'StratFailed2ChainSwing'
 
 

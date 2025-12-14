@@ -9,8 +9,10 @@ export async function GET(req: Request) {
   if (!symbol) return NextResponse.json({ ok: false, error: 'Missing symbol' }, { status: 400 })
 
   const { setupStore } = getTradingRuntime()
-  const setup = await setupStore.getLatest(symbol, 'FAILED2CHAIN')
+  // Backward-compatible route; canonical strategy id is StratFailed2ChainSwing.
+  const setup = await setupStore.getLatest(symbol, 'StratFailed2ChainSwing')
   return NextResponse.json({ ok: true, symbol, setup })
 }
+
 
 

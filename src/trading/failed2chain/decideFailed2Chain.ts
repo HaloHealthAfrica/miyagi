@@ -56,7 +56,7 @@ export function decideFailed2Chain(input: {
   if (!isKnown) {
     return {
       decision: {
-        strategyId: 'FAILED2CHAIN',
+        strategyId: 'StratFailed2ChainSwing',
         event,
         executionMode: config.executionMode,
         outcome: 'REJECT',
@@ -75,7 +75,7 @@ export function decideFailed2Chain(input: {
     gates.push(gate('payload_schema_valid', false, String(err?.message ?? err)))
     return {
       decision: {
-        strategyId: 'FAILED2CHAIN',
+        strategyId: 'StratFailed2ChainSwing',
         event,
         executionMode: config.executionMode,
         outcome: 'REJECT',
@@ -121,7 +121,7 @@ export function decideFailed2Chain(input: {
 
   const setupId = sha256Hex(
     stableStringify({
-      strategyId: 'FAILED2CHAIN',
+      strategyId: 'StratFailed2ChainSwing',
       symbol: payload.symbol,
       tf: event.timeframe,
       ts: event.timestamp,
@@ -135,7 +135,7 @@ export function decideFailed2Chain(input: {
   const setup: StrategySetupRecord = {
     id: setupId,
     symbol: payload.symbol,
-    strategyId: 'FAILED2CHAIN',
+    strategyId: 'StratFailed2ChainSwing',
     eventType: payload.event,
     direction: payload.side,
     timeframe: event.timeframe,
@@ -182,7 +182,7 @@ export function decideFailed2Chain(input: {
 
   return {
     decision: {
-      strategyId: 'FAILED2CHAIN',
+      strategyId: 'StratFailed2ChainSwing',
       event,
       executionMode: config.executionMode,
       outcome,

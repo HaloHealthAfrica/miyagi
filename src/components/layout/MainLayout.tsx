@@ -6,6 +6,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="terminal-grid">
       <Sidebar />
+      
       <main className="terminal-content bg-background">
         {children}
       </main>

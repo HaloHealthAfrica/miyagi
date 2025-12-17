@@ -2,7 +2,7 @@ import Credentials from "next-auth/providers/credentials";
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { authConfig } from "./auth.config";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { prisma } from "./lib/prisma";
 import { z } from "zod";
 

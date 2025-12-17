@@ -9,6 +9,12 @@ import { z } from "zod";
 const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
 const authUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
 
+if (process.env.NODE_ENV === "production" && !authSecret) {
+	console.error(
+		"❌ Missing AUTH_SECRET / NEXTAUTH_SECRET. NextAuth will fail until a secret is configured in Vercel env vars."
+	);
+}
+
 export const { auth, signIn, signOut, handlers } = NextAuth({
 	...authConfig,
 	// Make production deployments more resilient to differing env var conventions.

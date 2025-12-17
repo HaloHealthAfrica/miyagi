@@ -9,11 +9,17 @@ const globalForPrisma = globalThis as unknown as {
 // Prisma schema datasource uses env("DATABASE_URL"), so make sure it exists at runtime.
 // Vercel Postgres commonly provides POSTGRES_URL / POSTGRES_PRISMA_URL; we map those to DATABASE_URL if missing.
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL =
+  const inferred =
     process.env.POSTGRES_PRISMA_URL ||
     process.env.POSTGRES_URL ||
-    process.env.PRISMA_DATABASE_URL ||
-    ''
+    // Some Vercel Postgres setups use a non-pooling URL env var.
+    process.env.POSTGRES_URL_NON_POOLING ||
+    // Prisma Accelerate / other conventions
+    process.env.PRISMA_DATABASE_URL
+
+  if (inferred) {
+    process.env.DATABASE_URL = inferred
+  }
 }
 
 // Use Prisma Accelerate URL if available, otherwise use standard connection
@@ -21,7 +27,7 @@ const databaseUrl = process.env.PRISMA_DATABASE_URL || process.env.DATABASE_URL
 
 if (!databaseUrl) {
   console.error(
-    '❌ No DATABASE_URL found. Please set DATABASE_URL (or Vercel POSTGRES_URL/POSTGRES_PRISMA_URL).'
+    '❌ No DATABASE_URL found. Please set DATABASE_URL (or Vercel POSTGRES_URL/POSTGRES_PRISMA_URL/POSTGRES_URL_NON_POOLING).'
   )
 }
 

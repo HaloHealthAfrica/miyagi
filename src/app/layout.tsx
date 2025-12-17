@@ -1,6 +1,8 @@
-import type { Metadata } from 'next'
 import './globals.css'
+
+import type { Metadata } from 'next'
 import { Providers } from './providers'
+import { Toaster } from 'react-hot-toast'
 
 export const metadata: Metadata = {
   title: 'Miyagi Trading Platform',
@@ -16,6 +18,8 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body>
         <Providers>{children}</Providers>
+
+       <Toaster/> 
       </body>
     </html>
   )

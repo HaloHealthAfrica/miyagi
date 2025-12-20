@@ -446,3 +446,47 @@ model SwingState {
   lastPrecloseAlertAt DateTime?
   updatedAt           DateTime @updatedAt
 }
+
+enum WebhookEventStatus {
+  ACCEPTED
+  REJECTED
+  DUPLICATE
+  ERROR
+}
+
+model WebhookEvent {
+  eventId           String             @id @map("event_id")
+  traceId           String             @map("trace_id")
+  dedupeKey         String             @map("dedupe_key")
+
+  rawPayload        Json               @map("raw_payload")
+  normalizedPayload Json?              @map("normalized_payload")
+
+  strategyId        String?            @map("strategy_id")
+  event             String?
+  symbol            String?
+  timeframe         String?
+  timestamp         Int?
+
+  status            WebhookEventStatus
+
+  errorCode         String?            @map("error_code")
+  errorMessage      String?            @map("error_message")
+  errorFields       String[]?          @map("error_fields")
+
+  createdAt         DateTime           @default(now()) @map("created_at")
+
+  dedupe            WebhookDedupe?
+
+  @@index([status, createdAt])
+  @@index([strategyId, createdAt])
+  @@index([dedupeKey])
+}
+
+model WebhookDedupe {
+  dedupeKey     String       @id @map("dedupe_key")
+  firstEventId  String       @unique @map("first_event_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  event         WebhookEvent @relation(fields: [firstEventId], references: [eventId], onDelete: Cascade)
+}

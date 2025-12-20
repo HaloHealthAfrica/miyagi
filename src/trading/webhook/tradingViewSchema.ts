@@ -23,6 +23,7 @@ const canonicalSchema = z
   .object({
     source: z.literal('tradingview'),
     version: z.string().min(1),
+    strategy_id: z.string().min(1),
     event: z.string().min(1),
     symbol: z.string().min(1),
     assetType: z.enum(['EQUITY', 'ETF', 'INDEX']).optional(),

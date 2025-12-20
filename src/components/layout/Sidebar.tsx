@@ -14,7 +14,8 @@ import {
   FlaskConical,
   ListTodo,
   Wrench,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +32,7 @@ const navItems = [
   { href: '/research', label: 'Research', icon: FlaskConical },
   { href: '/jobs', label: 'Jobs', icon: ListTodo },
   { href: '/ops', label: 'Ops', icon: Wrench },
+  { href: '/ops/webhook-errors', label: 'Webhook Errors', icon: AlertTriangle },
   { href: '/risk', label: 'Risk', icon: Shield },
   { href: '/debug', label: 'Debug', icon: Shield },
 ]

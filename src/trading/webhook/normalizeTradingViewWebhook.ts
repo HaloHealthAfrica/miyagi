@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { Direction, MarketEvent, Session, SignalType, StructureInfo } from '@/trading/types'
 import { tradingViewWebhookSchema, type TradingViewWebhookPayload } from '@/trading/webhook/tradingViewSchema'
+import { normalizeEpochSeconds } from '@/trading/webhook/normalizeEpoch'
 
 const directionSchema = z.enum(['LONG', 'SHORT', 'NONE'])
 const sessionSchema = z.enum(['RTH', 'ETH'])
@@ -32,6 +33,11 @@ export function normalizeTradingViewWebhook(raw: unknown): {
   // Canonical Failed2/Chain structure direction lives at payload.structure.direction
   const canonicalDir = normalizeOptionalCanonicalStructureDirection(parsed)
 
+  const tsRes = normalizeEpochSeconds((parsed as any).timestamp)
+  if (!tsRes.ok) {
+    throw new Error(`Invalid timestamp: ${tsRes.error}`)
+  }
+
   return {
     raw: parsed,
     normalized: {
@@ -49,7 +55,7 @@ export function normalizeTradingViewWebhook(raw: unknown): {
       fvg,
       structure,
       payload: parsed,
-      timestamp: Math.trunc(parsed.timestamp),
+      timestamp: tsRes.seconds,
     },
   }
 }

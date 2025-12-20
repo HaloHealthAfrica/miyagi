@@ -2,14 +2,11 @@ import type { StrategyConfig } from '@/trading/config'
 import { SPX_CONFIG, STRAT_FAILED2CHAIN_SWING_CONFIG } from '@/trading/config'
 import type { AuditLogStore } from '@/trading/audit/auditLogStore'
 import type { AuditDecisionRecord, AuditEventRecord } from '@/trading/audit/types'
-import type { IdempotencyStore } from '@/trading/idempotency/idempotencyStore'
 import type { DecisionRecord, GateResult } from '@/trading/decision/types'
 import type { StateIndexStore } from '@/trading/state/stateIndexStore'
 import type { StateStore } from '@/trading/state/stateStore'
 import { makeDefaultState, makeStateKey, type TradingState } from '@/trading/state/types'
 import type { MarketEvent, StrategyId } from '@/trading/types'
-import { sha256Hex } from '@/trading/common/hash'
-import { stableStringify } from '@/trading/common/stableStringify'
 import { getNyDateKey } from '@/trading/common/time'
 import { routeExecution } from '@/trading/execution/executionRouter'
 import { decideSpxTradeSignal } from '@/trading/spx/decision/decideSpxTradeSignal'
@@ -17,6 +14,9 @@ import { applySpxInfoEvent } from '@/trading/spx/state/applySpxInfoEvent'
 import { decideFailed2Chain } from '@/trading/failed2chain/decideFailed2Chain'
 
 export type ProcessWebhookInput = {
+  eventId: string
+  traceId: string
+  dedupeKey: string
   strategyId: StrategyId
   raw: Record<string, any>
   normalized: MarketEvent
@@ -25,7 +25,6 @@ export type ProcessWebhookInput = {
     stateStore: StateStore
     stateIndex: StateIndexStore
     auditLog: AuditLogStore
-    idempotency: IdempotencyStore
     setupStore: import('@/trading/setups/setupStore').SetupStore
   }
 }
@@ -49,15 +48,8 @@ function strategyConfig(strategyId: StrategyId): StrategyConfig {
 }
 
 export async function processTradingViewWebhook(input: ProcessWebhookInput): Promise<ProcessWebhookResult> {
-  const { stores, strategyId, raw, normalized, receivedAt } = input
+  const { stores, strategyId, raw, normalized, receivedAt, eventId } = input
   const config = strategyConfig(strategyId)
-
-  // Deterministic idempotency key derived from strategy + full raw payload.
-  const idempotencyKey = sha256Hex(stableStringify({ strategyId, raw }))
-  const eventId = idempotencyKey
-
-  const claimed = await stores.idempotency.claim(`idempotency:${eventId}`, config.idempotencyTtlSeconds)
-  const duplicate = !claimed
 
   // Always write raw + normalized event for audit/debug visibility.
   const eventRecord: AuditEventRecord = {
@@ -68,29 +60,6 @@ export async function processTradingViewWebhook(input: ProcessWebhookInput): Pro
     normalized,
   }
   await stores.auditLog.appendEvent(eventRecord, config.auditRetentionSeconds)
-
-  // If duplicate, do not mutate state or re-run decision/execution.
-  if (duplicate) {
-    const decision: DecisionRecord = {
-      strategyId,
-      event: normalized,
-      executionMode: config.executionMode,
-      outcome: 'REJECT',
-      gates: [gate('idempotency_first_claim', false, `eventId=${eventId}`)],
-      reason: 'Duplicate webhook (idempotency)',
-    }
-
-    const decisionRecord: AuditDecisionRecord = {
-      id: `${eventId}:${receivedAt}:duplicate`,
-      strategyId,
-      decidedAt: receivedAt,
-      eventId,
-      decision,
-    }
-    await stores.auditLog.appendDecision(decisionRecord, config.auditRetentionSeconds)
-
-    return { eventId, duplicate: true, decision }
-  }
 
   const stateKey = makeStateKey(strategyId, normalized.symbol, normalized.timeframe)
   const now = receivedAt

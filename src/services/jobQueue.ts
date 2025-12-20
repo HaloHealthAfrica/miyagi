@@ -3,7 +3,7 @@ import { DecisionEngine } from '@/engine/decisionEngine'
 import { ExecutionEngine } from '@/execution/executor'
 import { ResearchService } from '@/services/research'
 
-export type JobType = 'PROCESS_SIGNAL' | 'RUN_EXPERIMENT'
+export type JobType = 'PROCESS_SIGNAL' | 'PROCESS_WEBHOOK_EVENT' | 'RUN_EXPERIMENT'
 export type JobStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED'
 
 export interface EnqueueJobInput {
@@ -163,6 +163,50 @@ export class JobProcessor {
       }
 
       return { decision, execution }
+    }
+
+    if (job.type === 'PROCESS_WEBHOOK_EVENT') {
+      const { eventId } = job.payload || {}
+      if (!eventId) throw new Error('Missing payload.eventId')
+
+      const evt = await prisma.webhookEvent.findUnique({ where: { eventId } })
+      if (!evt) throw new Error(`WebhookEvent ${eventId} not found`)
+
+      if (evt.status !== 'ACCEPTED') {
+        return { skipped: true, reason: `status=${evt.status}` }
+      }
+
+      if (!evt.normalizedPayload) {
+        throw new Error(`WebhookEvent ${eventId} missing normalizedPayload`)
+      }
+
+      // Deferred strategy processing: consume persisted event only (no HTTP request coupling).
+      const { getTradingRuntime } = await import('@/trading/runtime/getTradingRuntime')
+      const { processTradingViewWebhook } = await import('@/trading/webhook/processTradingViewWebhook')
+
+      const stores = getTradingRuntime()
+
+      const strategyId = (evt.strategyId || 'MIYAGI') as any
+      const raw = (evt.rawPayload || {}) as any
+      const normalized = evt.normalizedPayload as any
+
+      const result = await processTradingViewWebhook({
+        eventId: evt.eventId,
+        traceId: evt.traceId,
+        dedupeKey: evt.dedupeKey,
+        strategyId,
+        raw,
+        normalized,
+        receivedAt: Date.now(),
+        stores,
+      })
+
+      return {
+        eventId: evt.eventId,
+        strategyId: evt.strategyId,
+        outcome: result.decision.outcome,
+        reason: result.decision.reason,
+      }
     }
 
     if (job.type === 'RUN_EXPERIMENT') {

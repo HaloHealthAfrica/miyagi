@@ -12,6 +12,7 @@ import { routeExecution } from '@/trading/execution/executionRouter'
 import { decideSpxTradeSignal } from '@/trading/spx/decision/decideSpxTradeSignal'
 import { applySpxInfoEvent } from '@/trading/spx/state/applySpxInfoEvent'
 import { decideFailed2Chain } from '@/trading/failed2chain/decideFailed2Chain'
+import { decideMiyagiLiquidity } from '@/trading/miyagi/liquidity/decideMiyagiLiquidity'
 
 export type ProcessWebhookInput = {
   eventId: string
@@ -118,7 +119,14 @@ export async function processTradingViewWebhook(input: ProcessWebhookInput): Pro
       decision =
         strategyId === 'SPX'
           ? decideSpxTradeSignal({ config, state, event: normalized, now })
-          : decideSpxTradeSignal({ config, state, event: normalized, now })
+          : await decideMiyagiLiquidity({
+              config,
+              state,
+              event: normalized,
+              now,
+              eventId,
+              receivedAt,
+            })
     }
 
     if (decision.outcome === 'EXECUTE_PAPER' || decision.outcome === 'EXECUTE_LIVE') {

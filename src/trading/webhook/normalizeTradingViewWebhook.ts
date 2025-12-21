@@ -21,7 +21,8 @@ export function normalizeTradingViewWebhook(raw: unknown): {
   const signalType = normalizeSignalType(parsed)
 
   const direction = normalizeOptionalDirection(parsed)
-  const confidence = normalizeOptionalNumber(parsed, 'confidence')
+  // Some strategies (e.g. Liquidity Strat) send `confidence_score` instead of `confidence`
+  const confidence = normalizeOptionalNumber(parsed, 'confidence') ?? normalizeOptionalNumber(parsed, 'confidence_score')
   const confluence = normalizeOptionalNumber(parsed, 'confluence')
   const session = normalizeOptionalSession(parsed)
   const ribbonState = normalizeOptionalString(parsed, ['ribbon_state', 'ribbonState', 'state'])
@@ -61,10 +62,18 @@ export function normalizeTradingViewWebhook(raw: unknown): {
 }
 
 function normalizeOptionalDirection(payload: Record<string, any>): Direction | undefined {
+  // Primary: explicit TradingView direction field (legacy/canonical)
   const candidate = payload.direction
-  if (candidate == null) return undefined
-  const res = directionSchema.safeParse(candidate)
-  return res.success ? (res.data as Direction) : undefined
+  if (candidate != null) {
+    const res = directionSchema.safeParse(candidate)
+    if (res.success) return res.data as Direction
+  }
+
+  // Secondary: Liquidity Strat uses `side` instead of `direction`
+  const side = payload.side
+  if (side === 'LONG' || side === 'SHORT' || side === 'NONE') return side as Direction
+
+  return undefined
 }
 
 function normalizeOptionalCanonicalStructureDirection(payload: Record<string, any>): Direction | undefined {
@@ -133,7 +142,15 @@ function normalizeSignalType(payload: Record<string, any>): SignalType {
 
   // Canonical contract: infer deterministically from event name.
   const evt = String(payload.event ?? '')
-  const actionable = new Set(['TRADE_SIGNAL', 'FAILED_2U', 'FAILED_2D', 'CHAIN_2U_F2U_2D'])
+  const actionable = new Set([
+    'TRADE_SIGNAL',
+    'FAILED_2U',
+    'FAILED_2D',
+    'CHAIN_2U_F2U_2D',
+    // MIYAGI Liquidity Strat (webhook-driven)
+    'LIQUIDITY_DEMAND_STRAT_LONG',
+    'LIQUIDITY_SUPPLY_STRAT_SHORT',
+  ])
   const info = new Set(['SWING_ARMED', 'SWING_PRE_CLOSE', 'SWING_CONFIRMED', 'ORB_LOCKED', 'HTF_PERMISSION_CHANGE'])
 
   if (actionable.has(evt)) return 'ACTIONABLE'

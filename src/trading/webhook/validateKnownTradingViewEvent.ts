@@ -29,12 +29,14 @@ const SPX_INFO = new Set(['EMA_RIBBON_FLIP', 'PHASE_TRANSITION', 'MSS', 'BOS', '
 
 // If/when MIYAGI strategy is fully implemented here, move its known INFO events into this set.
 const MIYAGI_INFO = new Set(['EMA_RIBBON_FLIP', 'PHASE_TRANSITION', 'MSS', 'BOS', 'FVG_CREATED', 'ORB_BREAK', 'SESSION'])
+const MIYAGI_ACTIONABLE = new Set(['LIQUIDITY_DEMAND_STRAT_LONG', 'LIQUIDITY_SUPPLY_STRAT_SHORT'])
 
 export function validateKnownTradingViewEvent(strategyId: StrategyId, evt: MarketEvent): KnownEventValidation {
   if (evt.signalType === 'ACTIONABLE') {
     const actionableOk =
       COMMON_ACTIONABLE.has(evt.event) ||
-      (strategyId === 'StratFailed2ChainSwing' && STRAT_FAILED2CHAIN_SWING_ACTIONABLE.has(evt.event))
+      (strategyId === 'StratFailed2ChainSwing' && STRAT_FAILED2CHAIN_SWING_ACTIONABLE.has(evt.event)) ||
+      (strategyId === 'MIYAGI' && MIYAGI_ACTIONABLE.has(evt.event))
     if (!actionableOk) {
       return { ok: false, status: 400, reason: `Unknown ACTIONABLE event: ${evt.event}` }
     }

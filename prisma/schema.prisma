@@ -472,7 +472,8 @@ model WebhookEvent {
 
   errorCode         String?            @map("error_code")
   errorMessage      String?            @map("error_message")
-  errorFields       String[]?          @map("error_fields")
+  // Prisma does not support optional list fields; use an empty list when there are no error fields.
+  errorFields       String[]           @default([]) @map("error_fields")
 
   createdAt         DateTime           @default(now()) @map("created_at")
 

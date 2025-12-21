@@ -6,6 +6,7 @@ import { buildTradingViewDedupeKey } from '@/trading/webhook/webhookDedupeKey'
 import { uuidv7 } from '@/lib/ids'
 import { prisma } from '@/lib/prisma'
 import { JobQueue } from '@/services/jobQueue'
+import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
         traceId,
         dedupeKey: `ERROR|JSON_PARSE|${eventId}`,
         rawPayload,
-        normalizedPayload: null,
+        normalizedPayload: Prisma.JsonNull,
         strategyId: null,
         event: null,
         symbol: null,
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
         status: 'ERROR',
         errorCode: 'JSON_PARSE',
         errorMessage: String(e?.message ?? e),
-        errorFields: null,
+        errorFields: [],
         createdAt: new Date(receivedAtMs),
       },
     }).catch(() => {
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
             traceId,
             dedupeKey: `REJECTED|UNAUTHORIZED|${eventId}`,
             rawPayload,
-            normalizedPayload: null,
+            normalizedPayload: Prisma.JsonNull,
             strategyId: null,
             event: null,
             symbol: null,
@@ -125,7 +126,7 @@ export async function POST(req: Request) {
           traceId,
           dedupeKey: `REJECTED|BASE_VALIDATION|${eventId}`,
           rawPayload,
-          normalizedPayload: null,
+          normalizedPayload: Prisma.JsonNull,
           strategyId: knownStrategyId,
           event: typeof eventName === 'string' ? eventName : null,
           symbol: typeof symbol === 'string' ? symbol : null,
@@ -158,7 +159,7 @@ export async function POST(req: Request) {
           traceId,
           dedupeKey: `REJECTED|SCHEMA_VALIDATION|${eventId}`,
           rawPayload,
-          normalizedPayload: null,
+          normalizedPayload: Prisma.JsonNull,
           strategyId: knownStrategyId,
           event: String(eventName),
           symbol: String(symbol),
@@ -167,7 +168,7 @@ export async function POST(req: Request) {
           status: 'REJECTED',
           errorCode: 'SCHEMA_VALIDATION',
           errorMessage: String(e?.message ?? e),
-          errorFields: null,
+          errorFields: [],
           createdAt: new Date(receivedAtMs),
         },
       })
@@ -230,7 +231,7 @@ export async function POST(req: Request) {
           status: 'ACCEPTED',
           errorCode: null,
           errorMessage: null,
-          errorFields: null,
+          errorFields: [],
           createdAt: new Date(receivedAtMs),
         },
       })
@@ -283,7 +284,7 @@ export async function POST(req: Request) {
           status: 'ERROR',
           errorCode: 'PERSISTENCE',
           errorMessage: String(e?.message ?? e),
-          errorFields: null,
+          errorFields: [],
           createdAt: new Date(receivedAtMs),
         },
       })
